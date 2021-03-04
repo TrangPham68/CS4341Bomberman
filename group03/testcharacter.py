@@ -14,11 +14,10 @@ class TestCharacter(CharacterEntity):
 
     def do(self, wrld):
         # Your code here
-        path = self.pathfinding((self.x, self.y), (6,18), wrld) #hard code end point
         print (self.x, " ", self.y)
+        path = self.pathfinding((self.x, self.y), (6, 17), wrld) #hard code end point
         if (len(path) > 1):
             print(len(path))
-            print (path[1][0] - self.x, " ", path[1][1] - self.y)
             self.move(path[1][0] - self.x, path[1][1] - self.y)
 
         #pass
@@ -30,23 +29,35 @@ class TestCharacter(CharacterEntity):
         endNode = self.createNode(end)
         visited = {}
 
+        seenNeighbor = {}
+
         frontier = PriorityQueue()
         startNode.setCostSoFar(0)
         startNode.setEstCost(self.getHeuristic(start, end))
-        frontier.put((startNode.getEstCost(), startNode))
+        frontier.put(startNode)
+        visited[start] = 0
+
+        seenNeighbor[start] = startNode
 
         while (not frontier.empty()):
-            next = frontier.get()[1]
-            visited[next.getNodePos()] = next
+            next = frontier.get()
+            #visited[next.getNodePos()] = next
 
             if next.getNodePos() == endNode.getNodePos():
                 return self.getPath(startNode, next)
             neighbor = self.getNeighbor(next.getNodePos(), world)
             for i in neighbor:
                 # if wall, ignore
-                node = self.createNode(i)
                 if (world.wall_at(i[0], i[1])):
                     continue
+
+                if not i in seenNeighbor:
+                    node = self.createNode(i)
+                    seenNeighbor[i] = node
+                else:
+                    node = seenNeighbor.get(i)
+
+
                 if (next.getParent() == None or not (node == next.getParent())):
                 # if the node is not next parents -> avoid suplicate path
                     if (next.getCostSoFar() == math.inf):
@@ -57,7 +68,7 @@ class TestCharacter(CharacterEntity):
                         node.setParent(next)
                         node.setCostSoFar(cost)
                         node.setEstCost(cost + self.getHeuristic(node.getNodePos(), endNode.getNodePos()))
-                        frontier.put((node.getEstCost(), node))
+                        frontier.put(node)
 
         return [] #return empty if we find no path
 
@@ -87,32 +98,33 @@ class TestCharacter(CharacterEntity):
         """get all the possible neighbor location and return a set of (x,y) neighbors"""
         width = world.width()
         height = world.height()
-        neighbor = set()
+        neighbor = []
 
         if (pos[0] > 0):
-            neighbor.add((pos[0] - 1, pos[1]))  # left
+            neighbor.append((pos[0] - 1, pos[1]))  # left
             if (pos[1] > 0):
-                neighbor.add((pos[0] - 1, pos[1] - 1)) #diag left down
+                neighbor.append((pos[0] - 1, pos[1] - 1)) #diag left down
             if (pos[1] < height - 1):
-                neighbor.add((pos[0] - 1, pos[1] + 1)) #diag left up
+                neighbor.append((pos[0] - 1, pos[1] + 1)) #diag left up
 
         if (pos[0] < width - 1):
-            neighbor.add((pos[0] + 1, pos[1]))  # right
+            neighbor.append((pos[0] + 1, pos[1]))  # right
             if (pos[1] > 0):
-                neighbor.add((pos[0] + 1, pos[1] - 1)) #diag right down
+                neighbor.append((pos[0] + 1, pos[1] - 1)) #diag right down
             if (pos[1] < height - 1):
-                neighbor.add((pos[0] + 1, pos[1] + 1)) #diag right up
+                neighbor.append((pos[0] + 1, pos[1] + 1)) #diag right up
 
         if (pos[1] > 0):
-            neighbor.add((pos[0], pos[1] - 1))  # down
+            neighbor.append((pos[0], pos[1] - 1))  # down
 
         if (pos[1] < height - 1):
-            neighbor.add((pos[0], pos[1] + 1))
+            neighbor.append((pos[0], pos[1] + 1))
         return neighbor
 
     def createNode(self, pos):
         """create a Node of a specific location"""
         return node.Node(pos)
+
 
 
 
