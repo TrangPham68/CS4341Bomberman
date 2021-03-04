@@ -14,7 +14,7 @@ class TestCharacter(CharacterEntity):
 
     def do(self, wrld):
         # Your code here
-        path = self.pathfinding((self.x, self.y), (5,17), wrld) #hard code end point
+        path = self.pathfinding((self.x, self.y), (6,18), wrld) #hard code end point
         print (self.x, " ", self.y)
         if (len(path) > 1):
             print(len(path))
@@ -23,8 +23,9 @@ class TestCharacter(CharacterEntity):
 
         #pass
 
-    def pathfinding(self, start, end, world):  # start (x,y) and end (x,y)
 
+    def pathfinding(self, start, end, world):  # start (x,y) and end (x,y)
+        """Apply Astar to find the closest path from start to end in world"""
         startNode = self.createNode(start)
         endNode = self.createNode(end)
         visited = {}
@@ -36,48 +37,54 @@ class TestCharacter(CharacterEntity):
 
         while (not frontier.empty()):
             next = frontier.get()[1]
-            visited[next.getNodeId()] = next
+            visited[next.getNodePos()] = next
 
-            if next.getNodeId() == endNode.getNodeId():
+            if next.getNodePos() == endNode.getNodePos():
                 return self.getPath(startNode, next)
-            neighbor = self.getNeighbor(next.getNodeId(), world)
+            neighbor = self.getNeighbor(next.getNodePos(), world)
             for i in neighbor:
                 # if wall, ignore
                 node = self.createNode(i)
                 if (world.wall_at(i[0], i[1])):
                     continue
-                if (next.getParent() == None or not (node == next.getParent())):  # no going back
+                if (next.getParent() == None or not (node == next.getParent())):
+                # if the node is not next parents -> avoid suplicate path
                     if (next.getCostSoFar() == math.inf):
                         next.setCostSoFar(0)
-                    cost = self.getDistance(next.getNodeId(), node.getNodeId()) + next.getCostSoFar()
+                    cost = self.getDistance(next.getNodePos(), node.getNodePos()) + next.getCostSoFar()
 
                     if (cost < node.getCostSoFar()):
                         node.setParent(next)
                         node.setCostSoFar(cost)
-                        node.setEstCost(cost + self.getHeuristic(node.getNodeId(), endNode.getNodeId()))
+                        node.setEstCost(cost + self.getHeuristic(node.getNodePos(), endNode.getNodePos()))
                         frontier.put((node.getEstCost(), node))
 
-        return []
+        return [] #return empty if we find no path
 
     def getHeuristic(self, start, end):  # for now just compute distance
+        """return the heuristic value from start point to end point"""
         return self.getDistance(start, end)  # TODO
 
-    def getDistance(self, start, end):  # for now just compute distance
+    def getDistance(self, start, end):  # compute distance
+        """return linear distance from start to end point"""
         return math.sqrt(math.pow(start[0] - end[0], 2) + math.pow(start[1] - end[1], 2))
 
     def getPath(self, startNode, endNode):
+        """return the list of (x, y) point from start to end by backtracking parent node from end"""
         current = endNode
         path = []
 
         while (not current == startNode):
-            path.insert(0, current.getNodeId())
+            path.insert(0, current.getNodePos())
             current = current.getParent()
 
-        path.insert(0, startNode.getNodeId())
+        path.insert(0, startNode.getNodePos())
         print(path)
         return path
 
+
     def getNeighbor(self, pos, world):
+        """get all the possible neighbor location and return a set of (x,y) neighbors"""
         width = world.width()
         height = world.height()
         neighbor = set()
@@ -85,16 +92,16 @@ class TestCharacter(CharacterEntity):
         if (pos[0] > 0):
             neighbor.add((pos[0] - 1, pos[1]))  # left
             if (pos[1] > 0):
-                neighbor.add((pos[0] - 1, pos[1] - 1))
+                neighbor.add((pos[0] - 1, pos[1] - 1)) #diag left down
             if (pos[1] < height - 1):
-                neighbor.add((pos[0] - 1, pos[1] + 1))
+                neighbor.add((pos[0] - 1, pos[1] + 1)) #diag left up
 
         if (pos[0] < width - 1):
             neighbor.add((pos[0] + 1, pos[1]))  # right
             if (pos[1] > 0):
-                neighbor.add((pos[0] + 1, pos[1] - 1))
+                neighbor.add((pos[0] + 1, pos[1] - 1)) #diag right down
             if (pos[1] < height - 1):
-                neighbor.add((pos[0] + 1, pos[1] + 1))
+                neighbor.add((pos[0] + 1, pos[1] + 1)) #diag right up
 
         if (pos[1] > 0):
             neighbor.add((pos[0], pos[1] - 1))  # down
@@ -104,6 +111,7 @@ class TestCharacter(CharacterEntity):
         return neighbor
 
     def createNode(self, pos):
+        """create a Node of a specific location"""
         return node.Node(pos)
 
 

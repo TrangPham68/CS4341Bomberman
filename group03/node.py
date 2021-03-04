@@ -3,7 +3,7 @@ import math
 class Node:
 
     def __init__(self, id):
-        self.nodeID = id
+        self.nodePos = id
         self.costSoFar = math.inf
         self.estCost = math.inf
         self.parent = None
@@ -24,8 +24,8 @@ class Node:
     def getEstCost(self):
         return self.estCost
 
-    def getNodeId(self):
-        return self.nodeID
+    def getNodePos(self):
+        return self.nodePos
 
     def getParent(self):
         return self.parent
