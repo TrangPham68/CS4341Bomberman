@@ -19,6 +19,9 @@ class TestCharacter(CharacterEntity):
         if (len(path) > 1):
             print(len(path))
             self.move(path[1][0] - self.x, path[1][1] - self.y)
+        else:
+            self.move(0,0)
+
 
         #pass
 
