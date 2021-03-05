@@ -3,7 +3,7 @@ import math
 import sys
 from queue import PriorityQueue
 
-import node
+import node 
 
 sys.path.insert(0, '../bomberman')
 # Import necessary stuff
@@ -11,11 +11,17 @@ from entity import CharacterEntity
 from colorama import Fore, Back
 
 class TestCharacter(CharacterEntity):
+    def __init__(self, name, player, x, y):
+        CharacterEntity.__init__(self, name, player, x, y) 
+        self.exit = None 
 
     def do(self, wrld):
         # Your code here
-        print (self.x, " ", self.y)
-        path = self.pathfinding((self.x, self.y), (6, 17), wrld) #hard code end point
+        # print (self.x, " ", self.y)
+        if self.exit is None: 
+            x, y = self.get_exit(wrld)
+
+        path = self.pathfinding((self.x, self.y), (x,y), wrld) #hard code end point
         if (len(path) > 1):
             print(len(path))
             self.move(path[1][0] - self.x, path[1][1] - self.y)
@@ -24,7 +30,6 @@ class TestCharacter(CharacterEntity):
 
 
         #pass
-
 
     def pathfinding(self, start, end, world):  # start (x,y) and end (x,y)
         """Apply Astar to find the closest path from start to end in world"""
@@ -80,8 +85,11 @@ class TestCharacter(CharacterEntity):
         return self.getDistance(start, end)  # TODO
 
     def getDistance(self, start, end):  # compute distance
-        """return linear distance from start to end point"""
-        return math.sqrt(math.pow(start[0] - end[0], 2) + math.pow(start[1] - end[1], 2))
+        """return Manhatten distance from start to end point"""
+        # return math.sqrt(math.pow(start[0] - end[0], 2) + math.pow(start[1] - end[1], 2))
+        (x1,y1) = start[0], start[1]
+        (x2,y2) = end[0], end[1]
+        return abs(x1 - x2) + abs(y1 -y2)
 
     def getPath(self, startNode, endNode):
         """return the list of (x, y) point from start to end by backtracking parent node from end"""
@@ -128,7 +136,8 @@ class TestCharacter(CharacterEntity):
         """create a Node of a specific location"""
         return node.Node(pos)
 
-
-
-
-
+    def get_exit(self, wrld): 
+        for x in range(wrld.width()):
+            for y in range(wrld.height()):
+                if wrld.exit_at(x,y):
+                    return x,y
