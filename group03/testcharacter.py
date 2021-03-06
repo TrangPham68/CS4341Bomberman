@@ -24,11 +24,13 @@ class TestCharacter(CharacterEntity):
         if self.exit is None: 
             x, y = self.find_exit(wrld)
         path = self.pathfinding((self.x, self.y), (x,y), wrld) #hard code end point
-        if (len(path) > 1):
+        
+        if (len(path) > 1) and len(self.find_monsters(wrld)) == 0:
             print(len(path))
             self.move(path[1][0] - self.x, path[1][1] - self.y)
         else:
-            self.move(0,0)
+            move = self.q_learn(wrld, self.x, self.y) 
+            self.move(move[0], move[1])
 
     def pathfinding(self, start, end, world):  # start (x,y) and end (x,y)
         """Apply Astar to find the closest path from start to end in world"""
@@ -100,7 +102,7 @@ class TestCharacter(CharacterEntity):
             current = current.getParent()
 
         path.insert(0, startNode.getNodePos())
-        print(path)
+        # print(path)
         return path
 
 
@@ -164,12 +166,12 @@ class TestCharacter(CharacterEntity):
         closest_m = monsters[0]
         
         for monster in monsters:
-            d1 = get_distance((x,y), monster) 
-            d2 = get_distance((x,y), )
-            if get_distance((x,y), monster) < get_distance((x,y), closest_m):
+            d1 = self.get_distance((x,y), monster) 
+            d2 = self.get_distance((x,y), closest_m)
+            if d1 < d2:
                 closest_m = monster 
 
-        path = self.pathfinding(wrld, (x,y), closest_m)
+        path = self.pathfinding((x,y), closest_m, wrld)
         length = len(path)
 
         return 1/(length**2)
@@ -179,10 +181,10 @@ class TestCharacter(CharacterEntity):
 
         exit_loc = self.find_exit(wrld) 
 
-        if (x,y) == exit:
+        if (x,y) == exit_loc:
             return 1 
         else:
-            path = self.pathfinding(wrld, (x,y), exit_loc)
+            path = self.pathfinding((x,y), exit_loc, wrld)
             length = len(path) 
 
             return 1/(length**2) 
@@ -195,35 +197,65 @@ class TestCharacter(CharacterEntity):
         return 1 
 
     def extract_features(self, wrld, x, y):
-        f1 = distance_to_monster(wrld, x, y)
-        f2 = distance_to_exit(wrld, x, y)
+        f1 = self.distance_to_monster(wrld, x, y)
+        f2 = self.distance_to_exit(wrld, x, y)
         #NEed to add more
-        return [f1, f2] 
+        print(f1,f2)
+        return [f1, f2]
     
     def q_value(self, wrld, x, y):
         fvec = self.extract_features(wrld, x, y)
         vals = list()
         for f in fvec:
             i = 0
-            new_w = self.weights[i] * fvec[f]
+            new_w = self.weights[i] * fvec[i]
             vals.append(new_w) 
             i += 1
         q = sum(vals)
         return q
     
     def next_best_q(self, wrld):
-        neighbors = self.getNeighbor((self.x, self.y), wrld) 
+        neighbors = self.get_neighbors((self.x, self.y), wrld) 
         direction = [] 
 
         for n in neighbors:
             if wrld.empty_at(n[0], n[1]):
-                direction.append((i[0] - self.x, i[1] - self.y)) 
+                direction.append((n[0] - self.x, n[1] - self.y)) 
         
         q_table = []
         for actions in direction:
             q_table.append(self.q_value(self.x, self.y))
         max_q = max(q_table) 
         return max_q
+
+    def q_learn(self, wrld, x, y): 
+        max_q = -999
+        max_a = (0,0)
+
+        neighbors = self.get_neighbors((self.x, self.y), wrld) 
+        direction = [] 
+        for n in neighbors:
+            if wrld.empty_at(n[0], n[1]):
+                direction.append((n[0] - self.x, n[1] - self.y)) 
+        
+        for move in direction:
+            new_pos = x + move[0], y + move[1] 
+            if new_pos[0] >= wrld.width() or new_pos[0] < 0:
+                continue
+            if new_pos[1] >= wrld.height() or new_pos[1] < 0:
+                continue
+            if wrld.wall_at(new_pos[0], new_pos[1]):
+                continue
+            # add move to be checked
+            wrld.me(self).move(move[0], move[1])
+            new_wrld, events = wrld.next()
+            new_q = self.q_value(new_wrld, new_pos[0], new_pos[1])
+
+            if new_q > max_q:
+                max_q = new_q
+                max_a = move
+            
+            return max_a
 
     def update_q(self, wrld, x, y): 
         fvec = self.extract_features(wrld, x, y)
@@ -235,6 +267,6 @@ class TestCharacter(CharacterEntity):
         for f in fvec: 
             i = 0 
             weight = self.weights[i] 
-            updated_q = weight + self.learning_rate * diff * fvec[f]
+            updated_q = weight + self.learning_rate * diff * fvec[i]
             self.weights[i] = updated_q
-        
+            i += 1
