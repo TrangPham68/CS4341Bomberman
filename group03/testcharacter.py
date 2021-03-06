@@ -14,7 +14,7 @@ class TestCharacter(CharacterEntity):
     def __init__(self, name, player, x, y):
         CharacterEntity.__init__(self, name, player, x, y) 
         self.exit = None 
-        self.weights = np.array([0 for x in range(2)])
+        self.weights = self.weights = np.array([0 for x in range(2)])
         self.learning_rate = 0.2
         self.discount_factor = 0.8
 
@@ -24,12 +24,12 @@ class TestCharacter(CharacterEntity):
         if self.exit is None: 
             x, y = self.find_exit(wrld)
         path = self.pathfinding((self.x, self.y), (x,y), wrld) #hard code end point
-        
+
         if (len(path) > 1) and len(self.find_monsters(wrld)) == 0:
-            print(len(path))
             self.move(path[1][0] - self.x, path[1][1] - self.y)
         else:
             move = self.q_learn(wrld, self.x, self.y) 
+            self.update_q(wrld, self.x, self.y)
             self.move(move[0], move[1])
 
     def pathfinding(self, start, end, world):  # start (x,y) and end (x,y)
@@ -192,7 +192,7 @@ class TestCharacter(CharacterEntity):
     def sum_rewards(self, wrld, x, y): 
         if wrld.exit_at(x, y):
             return wrld.time * 2 
-        elif wrld.monster_at(x,y) or wrld.explosion_at(x,y) or wrld.bomb_at(x,y):
+        elif wrld.monsters_at(x,y) or wrld.explosion_at(x,y) or wrld.bomb_at(x,y):
             return -100
         return 1 
 
@@ -200,14 +200,13 @@ class TestCharacter(CharacterEntity):
         f1 = self.distance_to_monster(wrld, x, y)
         f2 = self.distance_to_exit(wrld, x, y)
         #NEed to add more
-        print(f1,f2)
         return [f1, f2]
     
     def q_value(self, wrld, x, y):
         fvec = self.extract_features(wrld, x, y)
         vals = list()
+        i = 0
         for f in fvec:
-            i = 0
             new_w = self.weights[i] * fvec[i]
             vals.append(new_w) 
             i += 1
@@ -224,7 +223,7 @@ class TestCharacter(CharacterEntity):
         
         q_table = []
         for actions in direction:
-            q_table.append(self.q_value(self.x, self.y))
+            q_table.append(self.q_value(wrld, self.x, self.y))
         max_q = max(q_table) 
         return max_q
 
@@ -240,13 +239,6 @@ class TestCharacter(CharacterEntity):
         
         for move in direction:
             new_pos = x + move[0], y + move[1] 
-            if new_pos[0] >= wrld.width() or new_pos[0] < 0:
-                continue
-            if new_pos[1] >= wrld.height() or new_pos[1] < 0:
-                continue
-            if wrld.wall_at(new_pos[0], new_pos[1]):
-                continue
-            # add move to be checked
             wrld.me(self).move(move[0], move[1])
             new_wrld, events = wrld.next()
             new_q = self.q_value(new_wrld, new_pos[0], new_pos[1])
@@ -254,18 +246,17 @@ class TestCharacter(CharacterEntity):
             if new_q > max_q:
                 max_q = new_q
                 max_a = move
-            
+
             return max_a
 
     def update_q(self, wrld, x, y): 
         fvec = self.extract_features(wrld, x, y)
-        q = self.q_value(x, y)
+        q = self.q_value(wrld, x, y)
         next_q = self.next_best_q(wrld)
         reward = self.sum_rewards(wrld, x, y)
         diff = reward + self.discount_factor * next_q - q
-        
+        i = 0 
         for f in fvec: 
-            i = 0 
             weight = self.weights[i] 
             updated_q = weight + self.learning_rate * diff * fvec[i]
             self.weights[i] = updated_q
