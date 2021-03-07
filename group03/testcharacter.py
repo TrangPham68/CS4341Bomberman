@@ -1,9 +1,9 @@
-# This is necessary to find the main code
+# This is necessary to find the main code`
 import math
 import sys
 import numpy as np
 from queue import PriorityQueue
-import node 
+import node
 
 sys.path.insert(0, '../bomberman')
 # Import necessary stuff
@@ -12,25 +12,67 @@ from colorama import Fore, Back
 
 class TestCharacter(CharacterEntity):
     def __init__(self, name, player, x, y):
-        CharacterEntity.__init__(self, name, player, x, y) 
-        self.exit = None 
+        CharacterEntity.__init__(self, name, player, x, y)
+        self.exit = None
         self.weights = self.weights = np.array([0 for x in range(2)])
         self.learning_rate = 0.2
         self.discount_factor = 0.8
+        self.maxdepth = 1
 
     def do(self, wrld):
         # Your code here
-        # print (self.x, " ", self.y)
-        if self.exit is None: 
+        print (self.x, " ", self.y)
+        if self.exit is None:
             x, y = self.find_exit(wrld)
         path = self.pathfinding((self.x, self.y), (x,y), wrld) #hard code end point
+        #
+        #if (len(path) > 1) and len(self.find_monsters(wrld)) == 0:
+        #      self.move(path[1][0] - self.x, path[1][1] - self.y)
+        # else:
+        #     move = self.q_learn(wrld, self.x, self.y)
+        #     self.update_q(wrld, self.x, self.y)
+        depth = 0
+        move = self.expectimax(wrld, self.x, self.y, 0, wrld.time)[0]
+        self.move(move[0], move[1])
 
-        if (len(path) > 1) and len(self.find_monsters(wrld)) == 0:
-            self.move(path[1][0] - self.x, path[1][1] - self.y)
-        else:
-            move = self.q_learn(wrld, self.x, self.y) 
-            self.update_q(wrld, self.x, self.y)
-            self.move(move[0], move[1])
+
+    def expectimax(self, world, x, y, depth, time):
+        #value = self.distance_to_exit(world, x, y)
+        path = self.pathfinding((self.x, self.y), (7,18), world)
+        value = len(path)
+        value -= (self.distance_to_monster(world, x, y))
+        if depth == self.maxdepth or (x,y)==self.find_exit(world):
+            return ((x,y), value)
+
+        possible = self.get_neighbors([x,y], world)
+        original = world
+        max_pt = (-1,-1)
+        max_val = -999999999999999
+
+        for point in possible:
+            monster_pos = self.find_monsters(world)
+            possible_monster = self.get_neighbors(monster_pos[0], world)
+            monster_val = 0
+            for point_2 in possible_monster:
+                world.grid = original.grid
+                mon_x = monster_pos[0][0]
+                mon_y = monster_pos[0][1]
+                world.grid[x][y] = " "
+                world.grid[point_2[0]][point_2[1]] = "S"
+                world.grid[x][y] = " "
+                world.grid[point[0]][point[1]] = "C"
+                self.expectimax(world, point[0], point[1], depth+1, time-1)[1]
+            print((value + (monster_val/len(possible_monster))))
+            if point in path:
+                value += 100
+            if int(value + (monster_val/len(possible_monster))) > max_val:
+                max_pt = point
+                max_val = int(value + (monster_val/len(possible_monster)))
+
+        new_pt = (max_pt[0],max_pt[1])
+        return (new_pt, max_val)
+
+
 
     def pathfinding(self, start, end, world):  # start (x,y) and end (x,y)
         """Apply Astar to find the closest path from start to end in world"""
@@ -108,6 +150,7 @@ class TestCharacter(CharacterEntity):
 
     def get_neighbors(self, pos, world):
         """get all the possible neighbor location and return a set of (x,y) neighbors"""
+
         width = world.width()
         height = world.height()
         neighbor = []
@@ -118,14 +161,12 @@ class TestCharacter(CharacterEntity):
                 neighbor.append((pos[0] - 1, pos[1] - 1)) #diag left down
             if (pos[1] < height - 1):
                 neighbor.append((pos[0] - 1, pos[1] + 1)) #diag left up
-
         if (pos[0] < width - 1):
             neighbor.append((pos[0] + 1, pos[1]))  # right
             if (pos[1] > 0):
                 neighbor.append((pos[0] + 1, pos[1] - 1)) #diag right down
             if (pos[1] < height - 1):
                 neighbor.append((pos[0] + 1, pos[1] + 1)) #diag right up
-
         if (pos[1] > 0):
             neighbor.append((pos[0], pos[1] - 1))  # down
 
@@ -173,21 +214,19 @@ class TestCharacter(CharacterEntity):
 
         path = self.pathfinding((x,y), closest_m, wrld)
         length = len(path)
-
+        if length == 0:
+            return 1
         return 1/(length**2)
 
     def distance_to_exit(self, wrld, x, y):
         """check distance to exit"""
 
         exit_loc = self.find_exit(wrld) 
-
-        if (x,y) == exit_loc:
-            return 1 
-        else:
-            path = self.pathfinding((x,y), exit_loc, wrld)
-            length = len(path) 
-
-            return 1/(length**2) 
+        path = self.pathfinding((x,y), exit_loc, wrld)
+        length = len(path)
+        if length == 0:
+            return 1
+        return 1/(length**2)
 
     def sum_rewards(self, wrld, x, y): 
         if wrld.exit_at(x, y):
