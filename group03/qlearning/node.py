@@ -8,7 +8,6 @@ class Node:
         self.estCost = math.inf
         self.parent = None
 
-
     def setCostSoFar(self, cost):
         self.costSoFar = cost
 
