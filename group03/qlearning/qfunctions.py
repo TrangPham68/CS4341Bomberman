@@ -82,7 +82,7 @@ def monster_within_radius(wrld, x, y):
 
     path = astar((x,y), closest_m, wrld)
 
-    if len(path) <= 3:
+    if len(path) <= 4:
         return (4 - len(path)) / 4 # put emphasis on nearer monsters
     else:
         return 0
@@ -112,10 +112,12 @@ def find_walls(wrld, x, y):
 
 def blast_radius(wrld, x, y):
     """TODO: check if agent is within bomb radius"""
-    if distance_to_bomb(wrld, x, y) <= 3: #Not a good implementation since blast goes only in four directions
-        return 1
-    else:
-        return 0
+    if wrld.explosion_at(x,y) is not None:
+        return 1 
+    new_wrld, event = wrld.next()
+    if new_wrld.explosion_at(x,y) is not None:
+        return 1 
+    return 0
 
 def create_node(pos):
     """create a Node of a specific location"""

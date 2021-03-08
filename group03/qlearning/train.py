@@ -7,7 +7,7 @@ sys.path.insert(1, '..')
 import random
 import pandas as pd 
 import csv
-from game import Game
+from game import Train, Game
 from monsters.selfpreserving_monster import SelfPreservingMonster
 
 # TODO This is your code!
@@ -24,8 +24,8 @@ for ep in range(100):
         rd = csv.reader(csvfile)
         weights = {rows[0]:float(rows[1]) for rows in rd}
 
-    g = Game.fromfile('training_map.txt')
-    g.add_monster(SelfPreservingMonster("aggressive", # name
+    t = Train.fromfile('training_map.txt')
+    t.add_monster(SelfPreservingMonster("aggressive", # name
                                         "A",          # avatar
                                         4, 4,        # position
                                         2             # detection range
@@ -33,10 +33,10 @@ for ep in range(100):
 
     # TODO Add your character
     maboi = QAgent("me", "C", 0, 0, weights)
-    g.add_character(maboi)
+    t.add_character(maboi)
 
     # Run!
-    g.go(1)
+    t.train(1)
     with open('weights.csv', 'w') as csvfile:
         w = csv.writer(csvfile)
         for k, v in maboi.weights.items():

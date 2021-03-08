@@ -21,17 +21,13 @@ class QAgent(CharacterEntity):
         self.learning_rate = 0.2
         self.discount_factor = 0.8
         self.epsilon = 0.2
-        self.last_action = (0,0) 
         self.last_state = None
         self.weights = weights
+        self.last_action = (0,0)
 
     def do(self, wrld):
-        """main q learning"""
         if self.exit is None: 
             x, y = qf.find_exit(wrld)
-
-        if not bool(self.weights):
-            self.weights = self.extract_features(wrld, self.x, self.y)
 
         path = qf.astar((self.x, self.y), (x,y), wrld) 
         
@@ -40,14 +36,13 @@ class QAgent(CharacterEntity):
             self.move(path[1][0] - self.x, path[1][1] - self.y)
         else: # Move according to qlearning
             move = self.get_action(wrld) 
-            self.last_state = wrld
             self.move(move[0], move[1])
-            self.update_weights(self.last_state, wrld, self.x, self.y)
+
             # Place bomb if monster or walls are nearby
-            if (qf.monster_within_radius(wrld, x, y) > 0 or qf.find_walls(wrld, x, y) >= 3):
+            if (qf.monster_within_radius(wrld, move[0], move[1]) > 0 or qf.find_walls(wrld, move[0], move[1]) >= 3):
                 self.place_bomb()
+
             self.last_action = move
-            print("Weights:", self.weights)
 
     def get_legal_actions(self, wrld):
         """get possible actions given current position"""
@@ -95,6 +90,7 @@ class QAgent(CharacterEntity):
 
     def get_best_action(self, wrld):
         """return the best action given state-action pairs"""
+
         legal_a = self.get_legal_actions(wrld) 
         if len(legal_a) == 0:
             return 0
@@ -103,9 +99,12 @@ class QAgent(CharacterEntity):
         best_actions = list()
 
         for a in legal_a:
-            new_wrld, events = wrld.next()
-            new_q = self.q_value(new_wrld, self.x + a[0], self.y + a[1])
-            qmax = self.get_qmax(new_wrld, self.x + a[0], self.y + a[1])
+            # pick moves in Sensed World
+            wrld.me(self).move(a[0], a[1])
+            # make move
+            new_wrld, events = wrld.next() 
+            new_q = self.q_value(new_wrld, a[0], a[1])
+            qmax = self.get_qmax(new_wrld, a[0], a[1])
             if new_q >= qmax:
                 best_actions.append(a)
         
@@ -128,30 +127,3 @@ class QAgent(CharacterEntity):
                 new_action = best_actions[0]
         
         return new_action
-
-    def calc_rewards(self, wrld, x, y):
-        """
-        Loop over heuristics function and evaluate at current worldstate
-        return sum of heuristics
-        """
-        sum = 0
-        if wrld.exit_at(x, y):
-            sum += 200
-        elif wrld.monsters_at(x,y) or wrld.explosion_at(x,y) or wrld.bomb_at(x,y):
-            sum += -100
-        return 1
-
-    def update_weights(self, wrld, new_wrld, new_x, new_y):
-        """update feature weights"""
-        x, y = self.last_action[0], self.last_action[1]
-        reward = self.calc_rewards(wrld, x, y)
-        print("Reward: ", reward)
-        current_q = self.q_value(wrld, x, y)
-        next_action = self.get_action(wrld) 
-
-        # delta = r + v(max(a')(Q(s',a'))) - Q(s,a)
-        delta = (reward + (self.discount_factor * self.q_value(new_wrld, new_x, new_y))) - current_q
-
-        fvec = self.extract_features(wrld, x, y)
-        for f in fvec: 
-            self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
