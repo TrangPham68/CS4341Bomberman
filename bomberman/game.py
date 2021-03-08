@@ -174,38 +174,3 @@ class Train(Game):
             self.world.next_decisions()
             # Need to update weights
         colorama.deinit()
-
-    def update_weights(self, wrld, new_wrld, events):
-        """update feature weights, no fucking clue whats in here now"""
-        if len(wrld.characters) > 0 and len(new_wrld.characters) > 0:
-            # wanted to find current state and new state here
-            agent = next(iter(wrld.characters.values()))[0]
-            new_agent = next(iter(new_wrld.characters.values()))[0]
-
-            # get reward and q value of state
-            reward = self.calc_rewards(wrld, events)
-            print("Reward: ", reward)
-            current_q = agent.q_value(wrld, agent.x, agent.y)
-
-            # delta = r + v(max(a')(Q(s',a'))) - Q(s,a)
-            delta = (reward + (agent.discount_factor * agent.q_value(new_wrld, new_agent.x, new_agent.y))) - current_q
-
-            fvec = agent.extract_features(wrld, agent.x, agent.y)
-            for f in fvec: 
-                agent.weights[f] = agent.weights[f] + agent.learning_rate  * delta * fvec[f]
-
-    def calc_rewards(self, wrld, events):
-        """
-        Loop over heuristics function and evaluate at current worldstate
-        return sum of heuristics
-        """
-        sum = 0
-        if len(events) is None:
-            sum += 1
-        else:
-            for event in events:
-                if event.tpe == Event.BOMB_HIT_CHARACTER or event.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
-                    sum += -100
-                elif event.tpe == Event.CHARACTER_FOUND_EXIT:
-                    sum += 200
-        return sum
