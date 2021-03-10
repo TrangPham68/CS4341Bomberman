@@ -49,13 +49,13 @@ def distance_to_bomb(wrld, x, y):
     return 0
 
 def monster_within_radius(wrld, x, y):
-    """check if monster is within 2 tiles away"""
+    """check if monster is within 4 tiles away"""
     monsters = find_monsters(wrld) 
     closest_m = find_closest_obj(wrld, monsters, x, y)
-    path = astar((x,y), closest_m, wrld)
-
-    if len(path) <= 4:
-        return (4 - len(path)) / 4 # put emphasis on nearer monsters
+    path = get_distance((x,y), closest_m)
+    print("Monster to character:", path)
+    if path <= 4:
+        return 5 - path / 5 # put emphasis on nearer monsters
     else:
         return 0
 

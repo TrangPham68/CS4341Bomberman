@@ -170,10 +170,9 @@ class Train(Game):
         c.current_state = SensedWorld.from_world(self.world)
         while not self.done():
             (self.world, self.events) = self.world.next()
-            new_state = self.world
-            c.update_weights(new_state, self.events)
-            print("events", self.events)
             self.display_gui()
+            c.update_weights(self.world, self.events)
+            print(self.world, c.current_state)
             step()
             self.world.next_decisions()
         colorama.deinit()

@@ -77,7 +77,6 @@ class QAgent(CharacterEntity):
         fvec = self.extract_features(wrld, x, y) 
         for f in fvec: 
             q += self.weights[f] * fvec[f] 
-        
         return q
 
     def get_qmax(self, wrld, x, y):
@@ -89,58 +88,67 @@ class QAgent(CharacterEntity):
         q_table = [] 
 
         for a in legal_a: 
-            q_table.append(self.q_value(wrld, x, y))
-            
+            q_table.append(self.q_value(wrld, x + a[0], y + a[1]))
+            print("Q_table:", q_table)
         return max(q_table)
 
     def get_best_action(self, wrld):
         """return the best action given state-action pairs"""
-
-        char = next(iter(wrld.characters.values()))[0] 
+    
+        char = list(wrld.characters.values())[0][0]
+        print("Charcter:", char)
         char_pos = (char.x, char.y)
+
+        legal_a = self.get_legal_actions(wrld, char_pos) 
+        
+        # There could be more than one best action, but we pick the first one
+        best_action = (0,0)
 
         monsters = wrld.monsters.values()
 
-        # There could be more than one best action
-        best_actions = list()
-
-        legal_a = self.get_legal_actions(wrld, char_pos) 
-
-        # Remain still if no action can be taken
-        if len(legal_a) == 0:
-            best_actions = (0,0)
-
-        for a in legal_a:
-            # Set move in Sensed World
-            wrld.me(self).move(a[0], a[1])
-            # make move
-            if len(monsters) == 1:
-                m = next(iter(monsters))[0]
-            elif len(monsters) == 2:
-                monster = iter(wrld.monsters.values())
-                m1 = next(monster)[0]
-                m2 = next(monster)[0]
-                m_pos_list = [(m1.x, m1.y), (m2.x, m2.y)]
-                m_closest = qf.find_closest_obj(wrld, m_pos_list, char.x, char.y)
-                if m_closest == m_pos_list[0]:
-                     m = m1
-                else:
-                     m = m2
-            # Go through possible actions for monster
-            m_pos = (m.x, m.y)
-            m_legal_a = self.get_legal_actions(wrld, m_pos)
-
-            for ma in m_legal_a:
+        if len(legal_a) > 0:
+            for a in legal_a:
+                # Set move in Sensed World
+                wrld.me(self).move(a[0], a[1])
+                # make move
+                if len(monsters) == 1:
+                    m = next(iter(monsters))[0]
+                elif len(monsters) == 2:
+                    monster = iter(wrld.monsters.values())
+                    m1 = next(monster)[0]
+                    m2 = next(monster)[0]
+                    m_pos_list = [(m1.x, m1.y), (m2.x, m2.y)]
+                    m_closest = qf.find_closest_obj(wrld, m_pos_list, char.x, char.y)
+                    if m_closest == m_pos_list[0]:
+                        m = m1
+                    else:
+                        m = m2
+                # Go through possible actions for monster
+                m_pos = (m.x, m.y)
+                m_legal_a = self.get_legal_actions(wrld, m_pos)
+                len_m_path = 0
+                m_optimal_step = (0,0)
+                qmax = 0
+                for ma in m_legal_a:
+                    #Finding optimal monster move
+                    path = qf.astar((ma[0],ma[1]), (char.x, char.y), wrld)
+                    if len(path) > len_m_path:
+                        len_m_path = len(path)
+                        m_optimal_step = ma
+                
                 # Set monster move in Sensed World
-                m.move(ma[0], ma[1])
-                # Move
+                m.move(m_optimal_step[0], m_optimal_step[1])
                 new_wrld, events = wrld.next()
+
                 new_q = self.q_value(new_wrld, char.x + a[0], char.y + a[1])
-                qmax = self.get_qmax(new_wrld, char.x + a[0], char.y + a[1])
-                if new_q >= qmax:
-                    best_actions.append(a)
-        
-        return best_actions
+                print("New q", new_q)
+                if new_q > qmax:
+                    qmax = new_q
+                    best_action = a
+
+                print("Best actions:", best_action)
+    
+        return best_action
 
     def get_action(self, wrld):
         """take action with epsilon-greedy implementation"""
@@ -158,11 +166,7 @@ class QAgent(CharacterEntity):
                 if (rand < self.epsilon):
                     new_action = random.choice(legal_a)
                 else:
-                    best_actions = self.get_best_action(wrld)
-                    if len(best_actions) > 1: # More than one best action
-                        new_action = random.choice(best_actions)
-                    else:
-                        new_action = best_actions[0]
+                    new_action = self.get_best_action(wrld)
                 
         return new_action
 
@@ -200,18 +204,18 @@ class QAgent(CharacterEntity):
         next_state = SensedWorld.from_world(new_state)
 
         # Get best possible action from next state along with position of character
-        next_action = self.get_action(next_state) 
-        if next_action is not None:
-            next_pos = (self.current_pos[0] + dx + next_action[0], self.current_pos[1] + dy + next_action[1])
+        next_action = self.get_best_action(next_state)
 
-            print("Old world, new world:",  self.current_state, next_state)
-            print("Initial position:", self.current_pos, "Next position:", (self.current_pos[0] + dx, self.current_pos[1] + dy))
-            print("Position after:", next_pos)
-            print("Current action:", self.current_action, "Next action:", next_action)
+        next_pos = (self.current_pos[0] + dx + next_action[0], self.current_pos[1] + dy + next_action[1])
 
-            # delta = r + v(max(a')(Q(s',a'))) - Q(s,a)
-            delta = (reward + (self.discount_factor * self.q_value(next_state, next_pos[0], next_pos[1]))) - current_q
+        print("Old world, new world:",  self.current_state, next_state)
+        print("Initial position:", self.current_pos, "Next position:", (self.current_pos[0] + dx, self.current_pos[1] + dy))
+        print("Position after:", next_pos)
+        print("Current action:", self.current_action, "Next action:", next_action)
 
-            fvec = self.extract_features(self.current_state, self.current_pos[0], self.current_pos[1])
-            for f in fvec: 
-                self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
+        # delta = r + v(max(a')(Q(s',a'))) - Q(s,a)
+        delta = (reward + (self.discount_factor * self.q_value(next_state, next_pos[0], next_pos[1]))) - current_q
+
+        fvec = self.extract_features(self.current_state, self.current_pos[0], self.current_pos[1])
+        for f in fvec: 
+            self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
