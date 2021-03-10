@@ -18,9 +18,9 @@ class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
         self.exit = None 
-        self.learning_rate = 0.2
+        self.learning_rate = 0.5
         self.discount_factor = 0.8
-        self.epsilon = 0.2
+        self.epsilon = 0.3
         self.current_state = None
         self.current_action = (0,0)
         self.weights = weights
@@ -42,7 +42,7 @@ class QAgent(CharacterEntity):
 
             # Find and move with best move
             move = self.get_action(wrld) 
-            self.last_action = move
+            self.current_action = move
             self.move(move[0], move[1])
 
             # Place bomb if monster or walls are nearby
@@ -154,6 +154,7 @@ class QAgent(CharacterEntity):
                 legal_a = self.get_legal_actions(wrld, char_pos)
 
                 rand = random.random()
+                
                 if (rand < self.epsilon):
                     new_action = random.choice(legal_a)
                 else:
@@ -192,7 +193,7 @@ class QAgent(CharacterEntity):
 
     def update_weights(self, new_state, events):
         """update feature weights"""
-        x, y = self.current_action[0], self.current_action[1]
+        dx, dy = self.current_action[0], self.current_action[1]
         reward = self.calc_rewards(self.current_state, events) 
         current_q = self.q_value(self.current_state, self.current_pos[0], self.current_pos[1])
         # Create SensedWorld from Real World
@@ -201,11 +202,12 @@ class QAgent(CharacterEntity):
         # Get best possible action from next state along with position of character
         next_action = self.get_action(next_state) 
         if next_action is not None:
-            next_pos = (self.current_pos[0] + x + next_action[0], self.current_pos[1] + y + next_action[1])
+            next_pos = (self.current_pos[0] + dx + next_action[0], self.current_pos[1] + dy + next_action[1])
 
             print("Old world, new world:",  self.current_state, next_state)
-            print("Initial position:", self.current_pos, "Next position:", (self.current_pos[0] + x, self.current_pos[1] + y))
+            print("Initial position:", self.current_pos, "Next position:", (self.current_pos[0] + dx, self.current_pos[1] + dy))
             print("Position after:", next_pos)
+            print("Current action:", self.current_action, "Next action:", next_action)
 
             # delta = r + v(max(a')(Q(s',a'))) - Q(s,a)
             delta = (reward + (self.discount_factor * self.q_value(next_state, next_pos[0], next_pos[1]))) - current_q
@@ -213,5 +215,3 @@ class QAgent(CharacterEntity):
             fvec = self.extract_features(self.current_state, self.current_pos[0], self.current_pos[1])
             for f in fvec: 
                 self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
-            
-            self.current_action = (self.x, self.y)

@@ -1,5 +1,5 @@
-dist_to_monsters, 0.0
-dist_to_exit,0.0
-dist_to_bomb,0.0
-blast,0.0
-cornered,0.0
+dist_to_monsters,-0.78965428
+dist_to_exit,0.194
+dist_to_bomb,0.935
+blast,-0.704
+cornered,-0.371
