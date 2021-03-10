@@ -36,6 +36,7 @@ for ep in range(100):
     t.add_character(maboi)
 
     # Run!
+    # t.train(0)
     t.train(1)
     with open('weights.csv', 'w') as csvfile:
         w = csv.writer(csvfile)

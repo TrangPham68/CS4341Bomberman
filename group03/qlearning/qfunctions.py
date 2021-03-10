@@ -15,17 +15,7 @@ from queue import PriorityQueue
 def distance_to_monster(wrld, x, y):
     """check position of monster relative to character"""
     monsters = find_monsters(wrld) 
-
-    if len(monsters) == 0:
-        return 0 
-    closest_m = monsters[0]
-    
-    for monster in monsters:
-        d1 = get_distance((x,y), monster) 
-        d2 = get_distance((x,y), closest_m)
-        if d1 < d2:
-            closest_m = monster 
-
+    closest_m = find_closest_obj(wrld, monsters, x, y)
     path = astar((x,y), closest_m, wrld)
     length = len(path)
 
@@ -47,39 +37,21 @@ def distance_to_exit(wrld, x, y):
 
 # Find distance from character to closest bomb, normalized
 def distance_to_bomb(wrld, x, y):
-    """check distance to bomb"""
-
-    bombs = find_bombs(wrld)
-
-    if len(bombs) == 0:
-        return 0 
-    closest_b = bombs[0]
-    
-    for bomb in bombs:
-        d1 = get_distance((x,y), bomb) 
-        d2 = get_distance((x,y), closest_b)
-        if d1 < d2:
-            closest_b = bomb
-
-    path = astar((x,y), closest_b, wrld)
-    length = len(path)
-
-    return 1/(length**2)
+    """check if in horizontal or vertical range of bomb"""
+    for dx in range(5,6):
+        if (x + dx >= 0) and (x + dx < wrld.width()):
+            if wrld.bomb_at(x + dx, y):
+                return 1 
+    for dy in range(-5, 6):
+        if (y + dy >= 0) and (y + dy < wrld.height()):
+            if wrld.bomb_at(x, y + dy):
+                return 1
+    return 0
 
 def monster_within_radius(wrld, x, y):
     """check if monster is within 2 tiles away"""
     monsters = find_monsters(wrld) 
-
-    if len(monsters) == 0:
-        return 0 
-    closest_m = monsters[0]
-    
-    for monster in monsters:
-        d1 = get_distance((x,y), monster) 
-        d2 = get_distance((x,y), closest_m)
-        if d1 < d2:
-            closest_m = monster 
-
+    closest_m = find_closest_obj(wrld, monsters, x, y)
     path = astar((x,y), closest_m, wrld)
 
     if len(path) <= 4:
@@ -104,7 +76,7 @@ def find_walls(wrld, x, y):
     for dx in [-1, 0, 1]:
         if (x + dx >= 0) and (x + dx < wrld.width()):
             for dy in [-1, 0, 1]:
-                if (dx != 0) and (dy != 0):
+                if not((dx == 0) and (dy == 0)):
                     if (y + dy >= 0) and (y + dy < wrld.height()):
                         if wrld.wall_at(x + dx, y + dy):
                             walls.append((x + dx, y + dy))
@@ -113,9 +85,6 @@ def find_walls(wrld, x, y):
 def blast_radius(wrld, x, y):
     """TODO: check if agent is within bomb radius"""
     if wrld.explosion_at(x,y) is not None:
-        return 1 
-    new_wrld, event = wrld.next()
-    if new_wrld.explosion_at(x,y) is not None:
         return 1 
     return 0
 
@@ -259,3 +228,20 @@ def find_blasts(wrld):
                 explosions.append((x,y))
     
     return explosions
+
+def find_closest_obj(wrld, objs, x, y):
+    """find closest object to character"""
+
+    if len(objs) == 0:
+        return 0 
+    closest_obj = objs[0]
+    
+    for o in objs:
+        d1 = get_distance((x,y), o) 
+        d2 = get_distance((x,y), closest_obj)
+
+        # If d1 is closer than d2
+        if d1 < d2:
+            closest_obj = o
+
+    return closest_obj

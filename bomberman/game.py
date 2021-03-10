@@ -1,4 +1,4 @@
-from real_world import RealWorld
+from real_world import RealWorld, SensedWorld
 from events import Event
 import colorama
 import pygame
@@ -166,11 +166,14 @@ class Train(Game):
         self.display_gui()
         self.draw()
         step()
+        c = list(self.world.characters.values())[0][0]
+        c.current_state = SensedWorld.from_world(self.world)
         while not self.done():
             (self.world, self.events) = self.world.next()
+            new_state = self.world
+            c.update_weights(new_state, self.events)
+            print("events", self.events)
             self.display_gui()
-            self.draw()
             step()
             self.world.next_decisions()
-            # Need to update weights
         colorama.deinit()
