@@ -176,3 +176,4 @@ class Train(Game):
             step()
             self.world.next_decisions()
         colorama.deinit()
+

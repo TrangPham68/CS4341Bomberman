@@ -94,12 +94,17 @@ class QAgent(CharacterEntity):
 
     def get_best_action(self, wrld):
         """return the best action given state-action pairs"""
-    
-        char = list(wrld.characters.values())[0][0]
-        print("Charcter:", char)
-        char_pos = (char.x, char.y)
 
-        legal_a = self.get_legal_actions(wrld, char_pos) 
+        try:
+            char = list(wrld.characters.values())[0][0]
+            print("Charcter:", char)
+            char_pos = (char.x, char.y)
+
+            legal_a = self.get_legal_actions(wrld, char_pos)
+        except:
+            print("errrr")
+            legal_a = []
+
         
         # There could be more than one best action, but we pick the first one
         best_action = (0,0)

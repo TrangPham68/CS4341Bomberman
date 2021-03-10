@@ -37,9 +37,9 @@ for ep in range(100):
 
     # Run!
     # t.train(0)
-    t.train(0)
+    t.train(1)
     with open('weights.csv', 'w') as csvfile:
-        w = csv.writer(csvfile)
+        w = csv.writer(csvfile, lineterminator='\n')
         for k, v in maboi.weights.items():
             w.writerow([k,v])
     print(maboi.weights)
