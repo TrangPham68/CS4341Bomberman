@@ -36,51 +36,70 @@ class TestCharacter(CharacterEntity):
 
 
     def expectimax(self, world, x, y, depth, time):
-        #value = self.distance_to_exit(world, x, y)
+
         path = self.pathfinding((x, y), (7,18), world)
         print(x,y)
-        value = 25-len(path)-1
+        value = -len(path)
+        # print(value)
         if len(path) == 0:
             return (x,y,0)
         value -= (self.distance_to_monster(world, x, y))
 
         if depth == self.maxdepth or (x,y)==self.find_exit(world):
             return ((x,y), value)
-        print("NOT STOP")
-        print(value)
 
         possible = self.get_neighbors([x,y], world)
+        free = []
+        for point in possible:
+            print(world.grid[point[0]][point[1]])
+
+            if world.grid[point[0]][point[1]] == False:
+                free.append(point)
         print(possible)
-        original = world
+        print(free)
+        original = world.grid
         max_pt = (-1,-1)
         max_val = -999999999999999
 
-        for point in possible:
+        for point in free:
+            world.grid = original
             print(point)
             monster_pos = self.find_monsters(world)
             possible_monster = self.get_neighbors(monster_pos[0], world)
+            freemon = []
+            for pt in possible_monster:
+                print(world.grid[pt[0]][pt[1]])
+                if world.grid[pt[0]][pt[1]] == False:
+                    freemon.append(pt)
+
+
             monster_val = 0
             monster_max = -999999
 
-            for point_2 in possible_monster:
-                world.grid = original.grid
+            for point_2 in freemon:
+                world.grid = original
                 mon_x = monster_pos[0][0]
                 mon_y = monster_pos[0][1]
 
-                world.grid[x][y] = " "
-                world.grid[point_2[0]][point_2[1]] = "S"
-                world.grid[x][y] = " "
-                world.grid[point[0]][point[1]] = "C"
-
+                world.grid[x][y] = False
+                world.grid[point_2[0]][point_2[1]] = True
+                world.grid[x][y] = False
+                world.grid[point[0]][point[1]] = True
                 monster_val += self.expectimax(world, point[0], point[1], depth+1, time-1)[1]
+                world.grid[x][y] = True
+                world.grid[point_2[0]][point_2[1]] = False
+                world.grid[x][y] = True
+                world.grid[point[0]][point[1]] = False
 
-            world.grid = original.grid
+            world.grid = original
             print(value + (monster_val/len(possible_monster)))
+
             if value + (monster_val/len(possible_monster))> max_val:
                 max_pt = point
                 max_val = value + (monster_val/len(possible_monster))
 
         new_pt = (max_pt[0],max_pt[1])
+
         print("NEW")
         print(new_pt)
         return (new_pt, max_val)
@@ -182,7 +201,6 @@ class TestCharacter(CharacterEntity):
                 neighbor.append((pos[0] + 1, pos[1] + 1)) #diag right up
         if (pos[1] > 0):
             neighbor.append((pos[0], pos[1] - 1))  # down
-
         if (pos[1] < height - 1):
             neighbor.append((pos[0], pos[1] + 1))
 
