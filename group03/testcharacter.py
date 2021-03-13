@@ -41,21 +41,23 @@ def astar(maze, start, end):
     # Add the start node
     open_list.append(start_node)
 
+    i = 0
     # Loop until you find the end
     while len(open_list) > 0:
-
+        i+=1
+        if i > 2000:
+            print("STOP")
         # Get the current node
         current_node = open_list[0]
         current_index = 0
+
         for index, item in enumerate(open_list):
             if item.f < current_node.f:
                 current_node = item
                 current_index = index
-
         # Pop current off open list, add to closed list
         open_list.pop(current_index)
         closed_list.append(current_node)
-
         # Found the goal
         if current_node == end_node:
             path = []
@@ -128,7 +130,6 @@ class TestCharacter(CharacterEntity):
         #     move = self.q_learn(wrld, self.x, self.y)
         #     self.update_q(wrld, self.x, self.y)
         grid = self.build_grid(wrld)
-        print(grid)
         move = self.expectimax(wrld, grid, self.x, self.y, 0, wrld.time)[0]
         self.move(move[0]-self.x, move[1]-self.y)
 
@@ -141,17 +142,22 @@ class TestCharacter(CharacterEntity):
         st = (y,x)
         end = (18,7)
 
-        print(grid)
-        print(st)
-        print(end)
-
+        original = []
+        for r in range(world.height()):
+            col = []
+            for c in range(world.width()):
+                    col.append(grid[r][c])
+            original.append(col)
 
         print("\nStart Expectimax at")
         print(x,y)
+
         #TODO: DEPTH MULTIPLIER
-        # TODO: CHANGE TO ACTUAL EXIT
+        #TODO: CHANGE TO ACTUAL EXIT
+
         path = astar(grid, st, end)
         value = -len(path)
+
         print("To Exit")
         print(value)
         if len(path) == 0:
@@ -160,58 +166,60 @@ class TestCharacter(CharacterEntity):
         print("To Monster")
         print(self.distance_to_monster(grid, world, x, y))
         value -= (self.distance_to_monster(grid, world, x, y))
+        print(value)
 
-        if depth == self.maxdepth or (x,y)==self.find_exit(world):
+        if depth == self.maxdepth or (x,y) == exit:
             return ((x,y), value)
 
         possible = self.get_neighbors([x,y], world)
         free = []
+
         for point in possible:
-            if world.grid[point[0]][point[1]] == False:
+            if grid[point[0]][point[1]] == 0:
                 free.append(point)
-        original = world.grid
+
         max_pt = (-1,-1)
         max_val = -999999999999999
 
+
         for point in free:
-            world.grid = original
-            print("TRYING")
+            grid[x][y] = 0
+            grid[point[0]][point[1]] = 1
+
+            print("TRY GOING")
             print(point)
 
-            monster_pos = self.find_monsters(world)
+            monster_pos = self.find_monsters(grid, world.width(), world.height())
+            # print(monster_pos)
             possible_monster = self.get_neighbors(monster_pos[0], world)
+            # print(possible_monster)
             freemon = []
 
             for pt in possible_monster:
-                print(world.grid[pt[0]][pt[1]])
-                if world.grid[pt[0]][pt[1]] == False:
+                print(grid[pt[0]][pt[1]])
+                if grid[pt[0]][pt[1]] == 0:
                     freemon.append(pt)
 
-
+            print(freemon)
             monster_val = 0
             monster_max = -999999
 
             for point_2 in freemon:
                 print("WITH MONSTER")
                 print(point_2)
-                world.grid = original
+
                 mon_x = monster_pos[0][0]
                 mon_y = monster_pos[0][1]
 
-                world.grid[x][y] = False
-                world.grid[point_2[0]][point_2[1]] = True
-                world.grid[x][y] = False
-                world.grid[point[0]][point[1]] = True
+                grid[mon_x][mon_y] = 0
+                grid[point_2[0]][point_2[1]] = 2
 
-                monster_val += self.expectimax(world, point[0], point[1], depth+1, time-1)[1]
+                monster_val += self.expectimax(world, (grid,exit), point[0], point[1], depth+1, time-1)[1]
                 print("MONSTER VAL")
                 print(monster_val)
-                world.grid[x][y] = True
-                world.grid[point_2[0]][point_2[1]] = False
-                world.grid[x][y] = True
-                world.grid[point[0]][point[1]] = False
 
-            world.grid = original
+                grid[point_2[0]][point_2[1]] = 0
+            grid[point[0]][point[1]] = 1
             print("SO ALL TOGETHER")
             print(value + (monster_val/len(freemon)))
 
@@ -221,6 +229,11 @@ class TestCharacter(CharacterEntity):
                 print("It's the new max")
                 print(max_pt)
                 print(max_val)
+
+            for r in range(world.height()):
+                col = []
+                for c in range(world.width()):
+                   grid[r][c] = original[r][c]
 
         new_pt = (max_pt[0],max_pt[1])
 
@@ -282,8 +295,7 @@ class TestCharacter(CharacterEntity):
 
     def build_grid(self, world):
         rows, cols = (world.height(),world.width())
-        print(world.height())
-        print(world.width())
+
         arr = []
         e=(-1,-1)
         for x in range(rows):
@@ -370,7 +382,7 @@ class TestCharacter(CharacterEntity):
             for y in range(width):
                 if grid[x][y] == 2:
                     monsters.append((x,y))
-        print(monsters)
+
         return monsters
 
     #These are our features I think
@@ -387,9 +399,20 @@ class TestCharacter(CharacterEntity):
             d2 = self.get_distance((x,y), closest_m)
             if d1 < d2:
                 closest_m = monster 
-        print("WHAT")
-        path = astar(grid, closest_m, (x,y))
+        # print("WHAT")
+        # print(x,y)
+        # print(closest_m)
+        grid[closest_m[0]][closest_m[1]] = 0
+        grid[x][y] = 0
+        # print(grid)
+        start = (x,y)
+        # print(closest_m)
+        path = astar(grid, start, closest_m)
+
+        grid[closest_m[0]][closest_m[1]] = 2
+        grid[x][y] = 1
         length = len(path)
+
         if length == 0:
             return 1
         return length
