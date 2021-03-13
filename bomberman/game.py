@@ -153,7 +153,6 @@ class Train(Game):
 
     def train(self, wait=0):
         """ Main game loop. """
-
         if wait is 0:
             def step():
                 pygame.event.clear()
@@ -162,14 +161,7 @@ class Train(Game):
             def step():
                 pygame.time.wait(abs(wait))
 
-        colorama.init(autoreset=True)
-        self.display_gui()
-        self.draw()
-        step()
         while not self.done():
             (self.world, self.events) = self.world.next()
             self.display_gui()
-            # self.display_gui()
-            step()
             self.world.next_decisions()
-        colorama.deinit()

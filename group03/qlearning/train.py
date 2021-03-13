@@ -5,7 +5,6 @@ sys.path.insert(1, '..')
 
 # Import necessary stuff
 import random
-import pandas as pd 
 import csv
 from game import Train, Game
 from monsters.selfpreserving_monster import SelfPreservingMonster
@@ -14,7 +13,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 sys.path.insert(1, '../group03/qlearning')
 from qlearning import QAgent
 
-for ep in range(100):
+for ep in range(2000):
     print("Episode:", ep)
 
 # Create the game
@@ -25,7 +24,7 @@ for ep in range(100):
     t = Train.fromfile('training_map.txt')
     t.add_monster(SelfPreservingMonster("aggressive", # name
                                         "A",          # avatar
-                                        6, 9,        # position
+                                        3, 9,        # position
                                         4             # detection range
     ))
 
@@ -40,4 +39,3 @@ for ep in range(100):
         w = csv.writer(csvfile)
         for k, v in maboi.weights.items():
             w.writerow([k,v])
-    print(maboi.weights)

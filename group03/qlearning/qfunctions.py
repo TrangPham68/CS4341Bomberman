@@ -16,58 +16,129 @@ def distance_to_monster(wrld, x, y):
     """check position of monster relative to character"""
     monsters = find_monsters(wrld) 
     closest_m = find_closest_obj(wrld, monsters, x, y)
-    path = astar((x,y), closest_m, wrld)
-    length = len(path)
 
-    return 1.0/(length+1)
+    # If there is no monster 
+    if closest_m == 0:
+        return 0.0
+    
+    if (x >= 0) and (x < wrld.width()):
+        # Avoid out-of-bound indexing
+        if (y >= 0) and (y < wrld.height()):
+            path = astar((x,y), closest_m, wrld)
+            length = len(path)
+
+            return 1.0/(length + 1)
+
+    # Return a high cost if out of bounds
+    return 1.0
 
 # Find distance from character to exit, normalized
 def distance_to_exit(wrld, x, y):
     """check distance to exit"""
-
     exit_loc = find_exit(wrld) 
-
     if (x,y) == exit_loc:
-        return 1 
-    else:
-        path = astar((x,y), exit_loc, wrld)
-        length = len(path) 
+        return 0.0
 
-        return 1.0/(length+1) 
+    if (x >= 0) and (x < wrld.width()):
+        # Avoid out-of-bound indexing
+        if (y >= 0) and (y < wrld.height()):
+            path = astar((x,y), exit_loc, wrld)
+            length = len(path) 
 
-# Find distance from character to closest bomb, normalized
-def distance_to_bomb(wrld, x, y):
-    """check if in horizontal or vertical range of bomb"""
-    for dx in range(5,6):
+            return 1.0/(length + 1) 
+
+    # Return a high cost if out of bounds
+    return 1.0
+
+# # Find distance from character to closest bomb, normalized
+# def bomb_radius(wrld, x, y):
+#     """
+#     Checks if player is within potential explosion radius
+#     """
+#     for dx in range(5,6):
+#         if (x + dx >= 0) and (x + dx < wrld.width()):
+#             if wrld.bomb_at(x + dx, y):
+#                 return 1.0
+#     for dy in range(-5, 6):
+#         if (y + dy >= 0) and (y + dy < wrld.height()):
+#             if wrld.bomb_at(x, y + dy):
+#                 return 1.0
+#     return 0.0
+
+def distance_to_bomb(wrld,x,y):
+    """
+    Checks the number of moves from character to bomb
+    Returns length of astar path, normalized
+    """
+    bombs = find_bombs(wrld)
+    closest_b = find_closest_obj(wrld, bombs, x, y)
+
+    # If there is no monster 
+    if closest_b == 0:
+        return 0.0
+    
+    if (x >= 0) and (x < wrld.width()):
+        # Avoid out-of-bound indexing
+        if (y >= 0) and (y < wrld.height()):
+            path = astar((x,y), closest_b, wrld)
+            length = len(path)
+
+            return 1.0/(length + 1)
+
+    # Return a high cost if out of bounds
+    return 1.0
+
+def blast_radius(wrld, x, y):
+    """Check if agent and future moves is within explosion"""
+    for dx in [-1,0,1]:
+        # Avoid out-of-bound indexing 
         if (x + dx >= 0) and (x + dx < wrld.width()):
-            if wrld.bomb_at(x + dx, y):
-                return 1 
-    for dy in range(-5, 6):
-        if (y + dy >= 0) and (y + dy < wrld.height()):
-            if wrld.bomb_at(x, y + dy):
-                return 1
-    return 0
+            # Loop through y directions
+            for dy in [-1,0,1]:
+                # Avoid out-of-bound indexing
+                if (y + dy >= 0) and (y + dy < wrld.height()):
+                    for i in range(-1, 1):
+                        for j in range(-1,1):
+                            if wrld.explosion_at(x + dx + i, y + dy + j):
+                                return 1.0
+
+    return 0.0
 
 def monster_within_radius(wrld, x, y):
-    """check if monster is within 4 tiles away"""
+    """Check if monster is within 3 tiles away"""
     monsters = find_monsters(wrld) 
     closest_m = find_closest_obj(wrld, monsters, x, y)
-    path = get_distance((x,y), closest_m)
-    if path <= 2:
-        return 3 - path / 3 # put emphasis on nearer monsters
-    else:
-        return 0
-
-def if_cornered(wrld, x, y):
-    """check if agent is cornered and has less than 3 possible moves"""
-    curr_pos = (x, y)
-    neighbors = get_neighbors(wrld, curr_pos) 
-    directions = [] 
-    for n in neighbors:
-        if wrld.empty_at(n[0], n[1]):
-             directions.append((n[0] - x, n[1] - y)) 
+    if closest_m == 0:
+        return 0.0
     
-    return len(directions) < 3
+    if (x >= 0) and (x < wrld.width()):
+        # Avoid out-of-bound indexing
+        if (y >= 0) and (y < wrld.height()):
+            path = astar((x,y), closest_m, wrld)
+            length = len(path)
+            if length <= 3:
+                return float(4 - length / 4) # put emphasis on nearer monsters
+    
+    return 0.0
+
+# def if_cornered(wrld, x, y):
+#     """check if agent is cornered and has less than 3 possible moves"""
+#     x, y = (curr_pos[0], curr_pos[1])
+#         directions = []
+
+#         for c_dx in [-1,0,1]:
+#             # Avoid out-of-bound indexing 
+#             if (x + c_dx >= 0) and (x + c_dx < wrld.width()):
+#                 # Loop through y directions
+#                 for c_dy in [-1,0,1]:
+#                     # Avoid out-of-bound indexing
+#                     if (y + c_dy >= 0) and (y + c_dy < wrld.height()):
+#                         # No need to check impossible moves
+#                         if not wrld.wall_at(x + c_dx, y + c_dy) or not wrld.bomb_at(x + c_dx, y + c_dy):
+#                             # Set move in Sensed World
+#                             directions.append((c_dx, c_dy))
+        
+#         return len(directions) < 3
 
 def find_walls(wrld, x, y):
     """find number of surrounding walls"""
@@ -80,12 +151,6 @@ def find_walls(wrld, x, y):
                         if wrld.wall_at(x + dx, y + dy):
                             walls.append((x + dx, y + dy))
     return len(walls)
-
-def blast_radius(wrld, x, y):
-    """TODO: check if agent is within bomb radius"""
-    if wrld.explosion_at(x,y) is not None:
-        return 1 
-    return 0
 
 def create_node(pos):
     """create a Node of a specific location"""
@@ -112,7 +177,6 @@ def get_path(startNode, endNode):
         current = current.getParent()
 
     path.insert(0, startNode.getNodePos())
-    # print(path)
     return path
 
 def get_neighbors(wrld,pos):
