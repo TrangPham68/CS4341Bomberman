@@ -4,13 +4,13 @@ expl_duration 3
 expl_range 3
 +----------+
 |          |
+|WWWW      |
+|       WWW|
+|          |
 |WWWWW     |
-|W   W  WWW|
-|WW     W  |
-|WWWWW  W  |
-| WW    WWW|
-|   WW     |
+|       WWW|
+|          |
 |WWWWW     |
-|W   WWWWWW|
-| WW  W   E|
+|       WWW|
+|         E|
 +----------+
