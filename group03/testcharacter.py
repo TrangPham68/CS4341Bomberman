@@ -32,7 +32,7 @@ class TestCharacter(CharacterEntity):
         #     self.update_q(wrld, self.x, self.y)
         print("HELLO")
         move = self.expectimax(wrld, self.x, self.y, 0, wrld.time)[0]
-        self.move(move[0], move[1])
+        self.move(move[0]-self.x, move[1]-self.y)
 
 
     def expectimax(self, world, x, y, depth, time):
