@@ -26,5 +26,14 @@ g.add_character(TestCharacter("me", # name
                               0, 0  # position
 ))
 
+# # Uncomment this if you want the interactive character
+# from interactivecharacter import InteractiveCharacter
+#
+# # Uncomment this if you want the interactive character
+# g.add_character(InteractiveCharacter("me", # name
+#                                      "C",  # avatar
+#                                      0, 0  # position
+# ))
+
 # Run!
 g.go(1)
