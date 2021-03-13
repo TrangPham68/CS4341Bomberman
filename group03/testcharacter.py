@@ -35,7 +35,8 @@ class TestCharacter(CharacterEntity):
         self.move(move[0]-self.x, move[1]-self.y)
 
 
-    def expectimax(self, world, x, y, depth, time):
+    def expectimax(self, wrld, x, y, depth, time):
+        world = wrld.from_world(wrld)
 
         path = self.pathfinding((x, y), (7,18), world)
         print(x,y)
@@ -52,9 +53,9 @@ class TestCharacter(CharacterEntity):
         free = []
         for point in possible:
             print(world.grid[point[0]][point[1]])
-
             if world.grid[point[0]][point[1]] == False:
                 free.append(point)
+
         print(possible)
         print(free)
         original = world.grid
@@ -85,7 +86,9 @@ class TestCharacter(CharacterEntity):
                 world.grid[point_2[0]][point_2[1]] = True
                 world.grid[x][y] = False
                 world.grid[point[0]][point[1]] = True
-                monster_val += self.expectimax(world, point[0], point[1], depth+1, time-1)[1]
+
+                monster_val += self.expectimax(world.next()[0], point[0], point[1], depth+1, time-1)[1]
+
                 world.grid[x][y] = True
                 world.grid[point_2[0]][point_2[1]] = False
                 world.grid[x][y] = True
