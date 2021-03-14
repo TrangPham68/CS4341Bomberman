@@ -5,12 +5,17 @@ sys.path.insert(1, '..')
 
 # Import necessary stuff
 import random
+import csv
 from game import Game
 from monsters.selfpreserving_monster import SelfPreservingMonster
 
 # TODO This is your code!
-sys.path.insert(1, '../groupNN')
-from testcharacter import TestCharacter
+sys.path.insert(0, '../../group03/qlearning')
+from qlearner import QAgent
+
+with open('../qlearning/weights.csv') as csvfile:
+    rd = csv.reader(csvfile)
+    weights = {rows[0]:float(rows[1]) for rows in rd}
 
 # Create the game
 random.seed(123) # TODO Change this if you want different random choices
@@ -22,10 +27,8 @@ g.add_monster(SelfPreservingMonster("selfpreserving", # name
 ))
 
 # TODO Add your character
-g.add_character(TestCharacter("me", # name
-                              "C",  # avatar
-                              0, 0  # position
-))
+maboi = QAgent("me", "C", 0, 0, weights)
+g.add_character(maboi)
 
 # Run!
-g.go()
+g.go(1)

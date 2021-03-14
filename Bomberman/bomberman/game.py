@@ -145,3 +145,29 @@ class Game:
 
     def add_character(self, c):
         self.world.add_character(c)
+
+class Train(Game):
+    """Training class"""
+    def __init__(self, width, height, max_time, bomb_time, expl_duration, expl_range, sprite_dir="../../bomberman/sprites/"):
+        super().__init__(width, height, max_time, bomb_time, expl_duration, expl_range)
+
+    def train(self, wait=0):
+        """ Main game loop. """
+
+        if wait is 0:
+            def step():
+                pygame.event.clear()
+                input("Press Enter to continue or CTRL-C to stop...")
+        else:
+            def step():
+                pygame.time.wait(abs(wait))
+
+        colorama.init(autoreset=True)
+        self.display_gui()
+        step()
+        while not self.done():
+            (self.world, self.events) = self.world.next()
+            self.display_gui()
+            step()
+            self.world.next_decisions()
+        colorama.deinit()
