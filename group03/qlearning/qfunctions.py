@@ -22,7 +22,7 @@ def distance_to_monster(wrld, x, y):
     path = astar((x,y), (m.x, m.y), wrld)
     length = len(path) 
 
-    return -((1.0/(length + 1))**2)
+    return -(1.0/(length + 1))
 
 # Find distance from character to exit, normalized
 def distance_to_exit(wrld, x, y):
@@ -32,7 +32,7 @@ def distance_to_exit(wrld, x, y):
     path = astar((x,y), exit_loc, wrld)
     length = len(path) 
 
-    return length**0.1
+    return (1.0/(length + 1)) ** 0.1
 
 # Find distance from character to closest bomb, normalized
 def bomb_radius(wrld, x, y):

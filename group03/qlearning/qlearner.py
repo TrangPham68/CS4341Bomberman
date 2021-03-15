@@ -16,9 +16,9 @@ import qfunctions as qf
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.3
+        self.learning_rate = 0.25
         self.discount_factor = 0.8
-        self.epsilon = 0.3
+        self.epsilon = 0.2
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
@@ -74,7 +74,7 @@ class QAgent(CharacterEntity):
         features['dist_to_exit'] = qf.distance_to_exit(wrld, x, y)
         features['bomb_range'] = qf.bomb_radius(wrld, x, y)
         features['blast'] = qf.if_expl(wrld, x, y)
-
+        # features['m_range'] = qf.monster_within_radius(wrld,x,y)
         return features
 
     def q_value(self, wrld, action, x, y):
@@ -189,11 +189,12 @@ class QAgent(CharacterEntity):
         return sum of heuristics
         """
         if wrld.exit_at(x,y):
-            r = 100
+            r = 150
         elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
             r = -50
         else:
-            r = self.eval_state(wrld, (self.current_pos[0], self.current_pos[1]))
+            r = 1
+            # r = self.eval_state(wrld, (self.current_pos[0], self.current_pos[1]))
         return r
 
     def next_best_state(self, current_state, x, y, a):

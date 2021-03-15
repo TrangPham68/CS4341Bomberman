@@ -13,7 +13,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 sys.path.insert(1, '../group03/qlearning')
 from qlearner import QAgent
 
-for ep in range(5000):
+for ep in range(7000):
     print("Episode:", ep)
 
 # Create the game
@@ -33,7 +33,7 @@ for ep in range(5000):
     t.add_character(maboi)
 
     # Run!
-    t.train(0)
+    t.train(1)
     # t.train(1)
     with open('weights.csv', 'w') as csvfile:
         w = csv.writer(csvfile)
