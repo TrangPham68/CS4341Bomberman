@@ -18,15 +18,16 @@ from actions import Actions, Pos
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.3
+        self.learning_rate = 0.2
         self.discount_factor = 0.8
-        self.epsilon = 0.25
+        self.epsilon = 0.2
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
         self.current_pos = (0,0)
         self.last_pos = (0,0)
-    
+        self.win = 0
+
     def do(self, wrld):
         # Find character
         c = wrld.me(self)

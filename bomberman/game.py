@@ -11,6 +11,7 @@ class Game:
         self.world = RealWorld.from_params(width, height, max_time, bomb_time, expl_duration, expl_range)
         self.sprite_dir = sprite_dir
         self.load_gui(width, height)
+        self.win = 0
 
     @classmethod
     def fromfile(cls, fname, sprite_dir="../../bomberman/sprites/"):
@@ -124,6 +125,7 @@ class Game:
         # User Exit
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                self.win = 1
                 return True
         # Time's up
         if self.world.time <= 0:
@@ -154,20 +156,20 @@ class Train(Game):
     def train(self, wait=0):
         """ Main game loop. """
 
-        if wait is 0:
-            def step():
-                pygame.event.clear()
-                input("Press Enter to continue or CTRL-C to stop...")
-        else:
-            def step():
-                pygame.time.wait(abs(wait))
+        # if wait is 0:
+        #     def step():
+        #         pygame.event.clear()
+        #         input("Press Enter to continue or CTRL-C to stop...")
+        # else:
+        #     def step():
+        #         pygame.time.wait(abs(wait))
 
-        colorama.init(autoreset=True)
-        self.display_gui()
-        step()
+        # colorama.init(autoreset=True)
+        # self.display_gui()
+        # step()
         while not self.done():
             (self.world, self.events) = self.world.next()
-            self.display_gui()
-            step()
+            # self.display_gui()
+            # step()
             self.world.next_decisions()
-        colorama.deinit()
+        # colorama.deinit()

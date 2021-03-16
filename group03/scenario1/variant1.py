@@ -1,41 +1,36 @@
+
 # This is necessary to find the main code
 import sys
 sys.path.insert(0, '../../bomberman')
 sys.path.insert(1, '..')
 
 # Import necessary stuff
-from game import Game
+import random
+import csv
+from game import Game, Train
+from monsters.selfpreserving_monster import SelfPreservingMonster
 
 # TODO This is your code!
-sys.path.insert(1, '../groupNN')
+sys.path.insert(0, '../../group03/qlearning')
+from qlearner import QAgent
 
-# Uncomment this if you want the empty test character
-#from testcharacter import TestCharacter
+with open('../qlearning/weights.csv') as csvfile:
+    rd = csv.reader(csvfile)
+    weights = {rows[0]:float(rows[1]) for rows in rd}
 
-# Uncomment this if you want the interactive character
-from interactivecharacter import InteractiveCharacter
+win = 0
 
-# Create the game
-g = Game.fromfile('map.txt')
+for i in range(100):
+    # Create the game
+    random.seed(i) # TODO Change this if you want different random choices
+    g = Game.fromfile('map.txt')
 
-# TODO Add your character
+    # TODO Add your character
+    maboi = QAgent("me", "C", 0, 0, weights)
+    g.add_character(maboi)
 
-# Uncomment this if you want the test character
-# g.add_character(TestCharacter("me", # name
-#                               "C",  # avatar
-#                               0, 0  # position
-# ))
+    # Run!
+    g.go(1)
+    win += g.win
 
-# Uncomment this if you want the interactive character
-g.add_character(InteractiveCharacter("me", # name
-                                     "C",  # avatar
-                                     0, 0  # position
-))
-
-# Run!
-
-# Use this if you want to press ENTER to continue at each step
-# g.go(0)
-
-# Use this if you want to proceed automatically
-g.go(1)
+print("WIN RATE: ", win, " OUT OF 100")
