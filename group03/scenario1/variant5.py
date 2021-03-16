@@ -9,6 +9,8 @@ import random
 from game import Game
 from monsters.stupid_monster import StupidMonster
 from monsters.selfpreserving_monster import SelfPreservingMonster
+sys.path.insert(1, '../../group03/qlearning')
+from qlearner import QAgent
 
 # TODO This is your code!
 sys.path.insert(1, '../groupNN')
@@ -31,6 +33,9 @@ g.add_monster(SelfPreservingMonster("aggressive", # name
                                     2             # detection range
 ))
 
+maboi = QAgent("me", "C", 0, 0, weights)
+g.add_character(maboi)
+g.go(1)
 # TODO Add your character
 # g.add_character(TestCharacter("me", # name
 #                               "C",  # avatar

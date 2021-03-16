@@ -190,7 +190,7 @@ def find_closest_obj(wrld, objs, x, y):
     
     for o in objs:
         # Find distance from (x,y) to object
-        d1 = get_distance((x,y), (o.x, o.y)) 
+        d1 = get_distance((x,y), (o.x, o.y))
         d2 = get_distance((x,y), (closest_o.x, closest_o.y))
 
         # If d1 is closer than d2
@@ -213,7 +213,7 @@ def find_closest_monster(wrld, x, y):
         monster = iter(wrld.monsters.values())
         m1 = next(monster)[0]
         m2 = next(monster)[0]
-        m_pos_list = [(m1.x, m1.y), (m2.x, m2.y)]
+        m_pos_list = [m1, m2]
         m_closest = find_closest_obj(wrld, m_pos_list, x, y)
         if m_closest == m_pos_list[0]:
             m = m1 
