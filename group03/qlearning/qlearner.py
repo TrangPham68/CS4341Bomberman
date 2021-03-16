@@ -8,17 +8,19 @@ sys.path.insert(0, '../bomberman')
 from entity import CharacterEntity
 from colorama import Fore, Back
 from sensed_world import SensedWorld
+from events import Event 
 
 sys.path.insert(1, '../bomberman/group03')
 import qfunctions as qf
+from actions import Actions, Pos
 
 # Main Q Learning Agent 
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.25
+        self.learning_rate = 0.3
         self.discount_factor = 0.8
-        self.epsilon = 0.2
+        self.epsilon = 0.25
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
@@ -28,44 +30,40 @@ class QAgent(CharacterEntity):
     def do(self, wrld):
         # Find character
         c = wrld.me(self)
-
         if self.last_q:
             self.update_weights(wrld, c)
 
-        # Place bomb if monster or walls are nearby
-        if qf.monster_within_radius(wrld, c.x, c.y) or qf.find_walls(wrld, c.x, c.y):
-            self.place_bomb()
+        action = self.get_action(wrld, c.x, c.y)
+        move = Pos[action].value
 
-        # print("\n========================")
-        # print("MOVING CHARACTER: ")
-        # # Move character according to qlearning
-        # print(" q: ", self.last_q)
-        move = self.get_action(wrld, c.x, c.y)
         self.current_action = move
         self.last_q = self.q_value(wrld, self.current_action, c.x, c.y)
         self.last_pos = (c.x, c.y)
         self.current_pos = (c.x + move[0], c.y + move[1])
 
+        # Place bomb if bomb action is selected
+        if action == "BOMB":
+            self.place_bomb()
+
         self.move(move[0], move[1])
+
 
     def get_legal_actions(self, wrld, curr_pos):
         """Returns all possible actions given a position"""
         x, y = (curr_pos[0], curr_pos[1])
-        directions = []
+        actions = []
 
-        for c_dx in [-1,0,1]:
-            # Avoid out-of-bound indexing 
-            if (x + c_dx >= 0) and (x + c_dx < wrld.width()):
-                # Loop through y directions
-                for c_dy in [-1,0,1]:
-                    # Avoid out-of-bound indexing
-                    if (y + c_dy >= 0) and (y + c_dy < wrld.height()):
-                        # No need to check impossible moves
-                        if not wrld.wall_at(x + c_dx, y + c_dy) and not wrld.bomb_at(x + c_dx, y + c_dy) and not wrld.explosion_at(x + c_dx, y + c_dy):
-                            # Set move in Sensed World
-                            directions.append((c_dx, c_dy))
-        
-        return directions
+        for i in range(10):
+            a = Actions(i).name
+            dx = Pos[a].value[0]
+            dy = Pos[a].value[1]
+            if (x + dx >= 0) and (x + dx < wrld.width()):
+                if (y + dy >= 0) and (y + dy < wrld.height()):
+                    if not wrld.wall_at(x + dx, y + dy) and not wrld.bomb_at(x + dx, y + dy) and not wrld.explosion_at(x + dx, y + dy):
+                        if a == "BOMB" and len(wrld.bombs) > 0:
+                            continue
+                        actions.append(a)
+        return actions
 
     def extract_features(self, wrld, x, y):
         """Returns a dictionary of calculated features"""
@@ -74,6 +72,7 @@ class QAgent(CharacterEntity):
         features['dist_to_exit'] = qf.distance_to_exit(wrld, x, y)
         features['bomb_range'] = qf.bomb_radius(wrld, x, y)
         features['blast'] = qf.if_expl(wrld, x, y)
+        features['blocked'] = qf.if_blocked(wrld,x,y)
         # features['m_range'] = qf.monster_within_radius(wrld,x,y)
         return features
 
@@ -92,20 +91,22 @@ class QAgent(CharacterEntity):
         makes optimal moves with limited visibility.
         Returns best action and Q(s,a) as a tuple 
         """
-
-        best_action = (0,0)
+        best_action = "STAY"
         qmax = 0
-        m = None
-        q_table = {}
-
         m = qf.find_closest_monster(wrld, x, y)
+        q_table = {}
         
         #Iterate through possible character moves
         legal_a = self.get_legal_actions(wrld,(x,y))
-        for a in legal_a:
-
+        
+        for action in legal_a:
             # If character is still alive
             if wrld.me(self):
+                a = Pos[action].value
+                # If we want to place a bomb
+                if action == "BOMB":
+                    wrld.me(self).place_bomb()
+                # Move character
                 wrld.me(self).move(a[0], a[1])
 
                 # If there is a monster
@@ -115,51 +116,41 @@ class QAgent(CharacterEntity):
                     m_best_step = (0,0)
 
                     # Find optimal monster move
-                    m_moves = self.get_legal_actions(wrld, m_loc)
                     path = qf.astar(m_loc, (x + a[0], y + a[1]), wrld)
-
                     
                     if len(path) > 1:
                         next_pos = path[1]
                         m_best_step = (next_pos[0] - m.x, next_pos[1] - m.y)
-                    # for m_move in m_moves: 
-                    #     m_new_loc = (m.x + m_move[0], m.y + m_move[1])
-                    #     path = qf.astar(m_new_loc, (x + a[0], y + a[1]), wrld)
-                    #     if len(path) < m_best_path:
-                    #         m_best_step = m_move 
-                    #         m_best_path = len(path)
                     
                     # Set monster move in Sensed World
                     m.move(m_best_step[0], m_best_step[1])
                     # Go to next state
                     next_state, events = wrld.next()
-                
                     # Find optimal character move assuming monster makes best move for self
                     q = self.q_value(next_state, a, x, y)
-                    q_table[q] = a
+                    q_table[action] = q
         
-        qtable = list(q_table.keys())
+        qtable = list(q_table.values())
         if len(qtable) > 0:
             qmax = max(qtable)
-            best_action = q_table[qmax]
-        
+            for k,v in q_table.items():
+                if v == qmax:
+                    best_action = k
+
         return best_action, qmax
 
     def get_action(self, wrld, x, y):
         """Take action with epsilon-greedy implementation"""
-        new_action = (0,0)
+        new_action = "STAY"
 
         legal_a = self.get_legal_actions(wrld, (x,y))
-
         # Generate random number
         r = random.random()
-        # print("Rando: ", r)
         if len(legal_a) > 0:
             if (r < self.epsilon):
                 new_action = random.choice(legal_a)
             else:
                 new_action = self.get_best_action(wrld, x, y)[0]
-
         return new_action 
     
     def eval_state(self, wrld, curr_pos):
@@ -178,9 +169,6 @@ class QAgent(CharacterEntity):
         m_path = qf.astar((x,y), (m.x, m.y), wrld)
         m_length = len(m_path) 
 
-        # mdist = qf.distance_to_monster(wrld, curr_x, curr_y)
-        # edist = qf.distance_to_exit(wrld, curr_x, curr_y)
-
         return (1/(exit_length + 1)) - (1/(m_length + 1))
 
     def calc_rewards(self, wrld, x, y):
@@ -188,13 +176,19 @@ class QAgent(CharacterEntity):
         Loop over heuristics function and evaluate at current worldstate
         return sum of heuristics
         """
+        r = 0
         if wrld.exit_at(x,y):
-            r = 150
+            r += 150
         elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
-            r = -50
+            r -= 50
+        elif len(wrld.events) > 0:
+            for e in wrld.events:
+                if e.tpe == Event.BOMB_HIT_MONSTER:
+                    r += 20
+                elif e.tpe == Event.BOMB_HIT_WALL and wrld.me(self) is not None:
+                    r += 20
         else:
             r = 1
-            # r = self.eval_state(wrld, (self.current_pos[0], self.current_pos[1]))
         return r
 
     def next_best_state(self, current_state, x, y, a):

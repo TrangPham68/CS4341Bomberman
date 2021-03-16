@@ -11,9 +11,8 @@ from queue import PriorityQueue
 
 #FEATURES
 
-# Find distance from character to nearest monster, normalized
 def distance_to_monster(wrld, x, y):
-    """check position of monster relative to character"""
+    """# Find distance from character to nearest monster, normalized"""
     m = find_closest_monster(wrld, x, y)
 
     if not m: # If there is no monster
@@ -22,11 +21,10 @@ def distance_to_monster(wrld, x, y):
     path = astar((x,y), (m.x, m.y), wrld)
     length = len(path) 
 
-    return -(1.0/(length + 1))
+    return 1.0/(length + 1)
 
-# Find distance from character to exit, normalized
 def distance_to_exit(wrld, x, y):
-    """check distance to exit"""
+    """Find distance from character to exit, normalized"""
     exit_loc = find_exit(wrld) 
 
     path = astar((x,y), exit_loc, wrld)
@@ -34,11 +32,8 @@ def distance_to_exit(wrld, x, y):
 
     return (1.0/(length + 1)) ** 0.1
 
-# Find distance from character to closest bomb, normalized
 def bomb_radius(wrld, x, y):
-    """
-    Checks if player is within explosion radius
-    """
+    """Find distance from character to closest bomb, normalized"""
     danger = 0
     bombs = list(wrld.bombs.values())
     # If there are no bombs
@@ -53,21 +48,16 @@ def bomb_radius(wrld, x, y):
         for dy in range(-wrld.expl_range, wrld.expl_range + 1):
             if (b.y + dy >= 0) and (b.y + dy < wrld.height()):
                 e_range.add((b.x, b.y + dy))
-            
-        # print("POSITION OF BOMB: ", (b.x, b.y), "EXPLOSION RANGE: ", e_range)
 
         # Penalize more if character in range and bomb is about to explode
-        # print("BOMB TIMER: ", b.timer)
         if (x,y) in e_range:
-            # print("CHARACTER IN RANGE")
             if b.timer == 4:
-                danger = -0.25
+                danger = 0.25
             elif b.timer == 2:
-                danger = -0.5
+                danger = 0.5
             elif b.timer == 1:
-                danger = -1.0
-    # print("DANGER:", danger)
-    return danger
+                danger = 1.0
+    return danger 
 
 def if_expl(wrld, x, y):
     """Check if agent and future moves is within explosion"""
@@ -81,20 +71,22 @@ def if_expl(wrld, x, y):
                     for i in range(-1, 1):
                         for j in range(-1,1):
                             if wrld.explosion_at(x + dx + i, y + dy + j):
-                                return -1.0
+                                return 1.0
 
-    return 0.0
+    return 0
 
-def monster_within_radius(wrld, x, y):
-    """Check if monster is within 3 tiles away"""
-    m = find_closest_monster(wrld, x, y) 
-    if m:
-        path = astar((x,y), (m.x, m.y), wrld)
-        length = len(path)
-        if length <= 3:
-            return float(4 - length / 4) # put emphasis on nearer monsters
-    
-    return 0.0
+def if_blocked(wrld, x, y):
+    exit_loc = find_exit(wrld)
+    path = astar((x,y), exit_loc, wrld,  False)
+    obstacle = []
+    for pos in path:
+        if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
+            if wrld.wall_at(pos[0], pos[1]):
+                obstacle.append((pos, 'W'))
+            elif wrld.monsters_at(pos[0], pos[1]):
+                obstacle.append((pos, 'M'))
+    length = len(obstacle)
+    return 1.0 / (length + 1)
 
 # HELPER FUNCTUIONS
 
@@ -140,7 +132,7 @@ def get_neighbors(wrld,pos):
     
     return neighbor
         
-def astar(start, end, world):  # start (x,y) and end (x,y)
+def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
     """Apply Astar to find the closest path from start to end in world"""
     startNode = create_node(start)
     endNode = create_node(end)
@@ -165,7 +157,7 @@ def astar(start, end, world):  # start (x,y) and end (x,y)
         neighbor = get_neighbors(world, next.getNodePos())
         for i in neighbor:
             # if wall, ignore
-            if (world.wall_at(i[0], i[1])):
+            if (ignoreWall and world.wall_at(i[0], i[1])):
                 continue
 
             if not i in seenNeighbor:
