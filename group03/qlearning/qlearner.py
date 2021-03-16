@@ -31,6 +31,9 @@ class QAgent(CharacterEntity):
     def do(self, wrld):
         # Find character
         c = wrld.me(self)
+        if (qf.find_exit(wrld) == (self.x, self.y)):
+            self.win = 1
+
         if self.last_q:
             self.update_weights(wrld, c)
 

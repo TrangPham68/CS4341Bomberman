@@ -30,23 +30,23 @@ for variant in range (5):
 			g.add_monster(StupidMonster("stupid",  # name
 			                            "S",  # avatar
 			                            3, 5  # position
-			))
+			                            ))
 		if variant == 2:
 			g.add_monster(StupidMonster("stupid",  # name
 			                            "S",  # avatar
-			                            3, 5  # position
-			))
+			                            3, 9  # position
+			                            ))
 		if variant == 3 or variant == 4:
 			g.add_monster(SelfPreservingMonster("aggressive",  # name
 			                                    "A",  # avatar
 			                                    3, 13,  # position
 			                                    2  # detection range
-			))
+			                                    ))
 		maboi = QAgent("me", "C", 0, 0, weights)
 		g.add_character(maboi)
 		g.go(1)
 		if g.done():
-			if maboi.win == True:
+			if maboi.win == 1:
 				win += 1
 	winRate.append((variant, win))
 

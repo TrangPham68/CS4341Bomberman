@@ -46,7 +46,7 @@ for variant in range (5):
 		g.add_character(maboi)
 		g.go(1)
 		if g.done():
-			if maboi.win == True:
+			if maboi.win == 1:
 				win += 1
 	winRate.append((variant, win))
 
