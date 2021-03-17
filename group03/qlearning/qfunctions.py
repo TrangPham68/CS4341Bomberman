@@ -77,7 +77,7 @@ def if_expl(wrld, x, y):
 
 def if_blocked(wrld, x, y):
     exit_loc = find_exit(wrld)
-    path = astar((x,y), exit_loc, wrld,  False)
+    path = astar((x,y), exit_loc, wrld)
     obstacle = []
     for pos in path:
         if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
@@ -94,8 +94,10 @@ def create_node(pos):
     """create a Node of a specific location"""
     return node.Node(pos)
 
-def get_heuristic(start, end):  # for now just compute distance
+def get_heuristic(start, end, wrld):  # for now just compute distance
     """return the heuristic value from start point to end point"""
+    if (wrld.wall_at(start[0] , start[1])):
+        return 10 * get_distance(start, end)
     return get_distance(start, end)  
 
 def get_distance(start, end):  # compute distance
@@ -132,7 +134,7 @@ def get_neighbors(wrld,pos):
     
     return neighbor
         
-def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
+def astar(start, end, world):  # start (x,y) and end (x,y)
     """Apply Astar to find the closest path from start to end in world"""
     startNode = create_node(start)
     endNode = create_node(end)
@@ -142,7 +144,7 @@ def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
 
     frontier = PriorityQueue()
     startNode.setCostSoFar(0)
-    startNode.setEstCost(get_heuristic(start, end))
+    startNode.setEstCost(get_heuristic(start, end, world))
     frontier.put(startNode)
     seenNeighbor[start] = startNode
     path = []
@@ -156,10 +158,6 @@ def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
             break
         neighbor = get_neighbors(world, next.getNodePos())
         for i in neighbor:
-            # if wall, ignore
-            if (ignoreWall and world.wall_at(i[0], i[1])):
-                continue
-
             if not i in seenNeighbor:
                 node = create_node(i)
                 seenNeighbor[i] = node
@@ -176,7 +174,7 @@ def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
                 if (cost < node.getCostSoFar()):
                     node.setParent(next)
                     node.setCostSoFar(cost)
-                    node.setEstCost(cost + get_heuristic(node.getNodePos(), endNode.getNodePos()))
+                    node.setEstCost(cost + get_heuristic(node.getNodePos(), endNode.getNodePos(), world))
                     frontier.put(node)
 
     return path #return empty if we find no path

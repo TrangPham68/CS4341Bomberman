@@ -165,7 +165,6 @@ class QAgent(CharacterEntity):
 
     def get_astar_action(self, wrld, x, y):
         """Get the next action on the astar path if there is an exit that is not blocked and no monster"""
-
         exit = qf.find_exit(wrld)
         action = "STAY"
         if exit:
