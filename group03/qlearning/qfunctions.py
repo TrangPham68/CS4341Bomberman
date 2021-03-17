@@ -61,18 +61,23 @@ def bomb_radius(wrld, x, y):
 
 def if_expl(wrld, x, y):
     """Check if agent and future moves is within explosion"""
+
+    if wrld.explosion_at(x, y):
+        return 1.0
+    sum = 0
+
     for dx in [-1,0,1]:
-        # Avoid out-of-bound indexing 
+        # Avoid out-of-bound indexing
         if (x + dx >= 0) and (x + dx < wrld.width()):
             # Loop through y directions
             for dy in [-1,0,1]:
                 # Avoid out-of-bound indexing
                 if (y + dy >= 0) and (y + dy < wrld.height()):
-                    for i in range(-1, 1):
-                        for j in range(-1,1):
-                            if wrld.explosion_at(x + dx + i, y + dy + j) or wrld.bomb_at(x + dx + i, y + dy + j):
-                                return 1.0
-    return 0
+                    # for i in range(-1, 1):
+                    #     for j in range(-1,1):
+                    if wrld.explosion_at(x + dx, y + dy):
+                        sum = sum + 0.1
+    return sum
 
 def if_blocked(wrld, x, y):
     exit_loc = find_exit(wrld)

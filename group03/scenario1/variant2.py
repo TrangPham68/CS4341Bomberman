@@ -23,8 +23,8 @@ win = 0
 
 for i in range(1):
     # Create the game
-    random.seed(i) # TODO Change this if you want different random choices
-    g = Game.fromfile('map.txt')
+    #random.seed(i) # TODO Change this if you want different random choices
+    g = Train.fromfile('map.txt')
 
     g.add_monster(StupidMonster("stupid", # name
                                 "S",      # avatar
@@ -36,7 +36,7 @@ for i in range(1):
     g.add_character(maboi)
 
     # Run!
-    g.go(1)
+    g.train(1)
     win += g.win
 
 print("WIN RATE: ", win, " OUT OF 100")

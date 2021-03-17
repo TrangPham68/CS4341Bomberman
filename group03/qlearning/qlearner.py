@@ -32,18 +32,11 @@ class QAgent(CharacterEntity):
     def do(self, wrld):
         # Find character
         c = wrld.me(self)
-        print('\n')
-        print("STARTING")
-        print(c.x, c.y)
-        print("___________________________________________________________________________")
-        print('\n')
 
         if self.last_q:
             last_action = self.current_action
-            last_action = (-last_action[0], -last_action[1])
             self.update_weights(wrld, last_action, self.last_c)
 
-        print("Weights Updated")
         action = self.get_action(wrld, c.x, c.y)
         move = Pos[action].value
 
@@ -85,8 +78,9 @@ class QAgent(CharacterEntity):
         features['dist_to_monsters'] = qf.distance_to_monster(wrld, x, y)
         features['dist_to_exit'] = qf.distance_to_exit(wrld, x, y)
         features['bomb_range'] = qf.bomb_radius(wrld, x, y)
+        features['blast'] = qf.if_expl(wrld, x, y)
         features['blocked'] = qf.if_blocked(wrld,x,y)
-        features['if_bomb'] = qf.if_bomb(wrld, x, y)
+        # features['m_range'] = qf.monster_within_radius(wrld,x,y)
         return features
 
     def q_value(self, wrld, action, x, y):
@@ -198,15 +192,17 @@ class QAgent(CharacterEntity):
         """
         r = 0
         if wrld.exit_at(x,y):
-            return 100
+            r = 150
         elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
-            return -50
+            r = 50
         elif len(wrld.events) > 0:
             for e in wrld.events:
-                if e.tpe == Event.BOMB_HIT_MONSTER and wrld.me(self) is not None:
-                    r += 5
+                if e.tpe == Event.BOMB_HIT_MONSTER:
+                    r = 20
+                elif e.tpe == Event.BOMB_HIT_WALL and wrld.me(self) is not None:
+                    r = 20
         else:
-            r -= 1
+            r = 1
         return r
 
     def next_best_state(self, current_state, x, y, a):
