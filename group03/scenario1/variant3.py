@@ -17,15 +17,17 @@ with open('../qlearning/weights.csv') as csvfile:
     rd = csv.reader(csvfile)
     weights = {rows[0]:float(rows[1]) for rows in rd}
 
-# Create the game
+
 win = 0
-for i in range(5):
-    random.seed(180) # TODO Change this if you want different random choices
+
+for i in range(100):
+    # Create the game
+    random.seed(i) # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
     g.add_monster(SelfPreservingMonster("selfpreserving", # name
                                         "S",              # avatar
-                                         3, 9,             # position
-                                         1                 # detection range
+                                        3, 9,             # position
+                                        1                 # detection range
     ))
 
     # TODO Add your character
@@ -38,3 +40,4 @@ for i in range(5):
         win += 1
 
 print("WIN RATE: ", win, " OUT OF", i+1)
+

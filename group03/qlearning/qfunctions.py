@@ -1,12 +1,11 @@
 # This is necessary to find the main code
 import math
 import sys
+
 import node
 
 sys.path.insert(0, '../bomberman')
 # Import necessary stuff
-from colorama import Fore, Back
-from sensed_world import SensedWorld
 from queue import PriorityQueue
 
 #FEATURES
@@ -21,12 +20,11 @@ def distance_to_monster(wrld, x, y):
     path = astar((x,y), (m.x, m.y), wrld)
     length = len(path) 
 
-    return 1.0/(length + 1)
+    return 1.0 / (length + 1)
 
 def distance_to_exit(wrld, x, y):
     """Find distance from character to exit, normalized"""
     exit_loc = find_exit(wrld) 
-
     path = astar((x,y), exit_loc, wrld)
     length = len(path) 
 
@@ -36,57 +34,67 @@ def bomb_radius(wrld, x, y):
     """Find distance from character to closest bomb, normalized"""
     danger = 0
     bombs = list(wrld.bombs.values())
-    # If there are no bombs
+
+    # Check if in explosion
+    if wrld.explosion_at(x, y):
+        return 1
+
+    # If there is a bomb but character is not in an explosion
     if len(bombs) > 0:
         b = find_closest_obj(wrld, bombs, x, y)
-        e_range = set()
+        e_range = expl_radius(wrld, b.x, b.y)
 
-        # Grab coordinates of explosion range
-        for dx in range(-wrld.expl_range, wrld.expl_range + 1):
-            if (b.x + dx >= 0) and (b.x + dx < wrld.width()):
-                e_range.add((b.x + dx, b.y))
-        for dy in range(-wrld.expl_range, wrld.expl_range + 1):
-            if (b.y + dy >= 0) and (b.y + dy < wrld.height()):
-                e_range.add((b.x, b.y + dy))
+        # Remove current character position from bomb radius
+        e_range.remove((b.x,b.y))
 
         # Penalize more if character in range and bomb is about to explode
         if (x,y) in e_range:
-            if b.timer == 4:
-                danger = 0.25
-            elif b.timer == 2:
-                danger = 0.5
-            elif b.timer == 1:
-                danger = 1.0
-    return danger 
-
-def if_expl(wrld, x, y):
-    """Check if agent and future moves is within explosion"""
-    for dx in [-1,0,1]:
-        # Avoid out-of-bound indexing 
-        if (x + dx >= 0) and (x + dx < wrld.width()):
-            # Loop through y directions
-            for dy in [-1,0,1]:
-                # Avoid out-of-bound indexing
-                if (y + dy >= 0) and (y + dy < wrld.height()):
-                    for i in range(-1, 1):
-                        for j in range(-1,1):
-                            if wrld.explosion_at(x + dx + i, y + dy + j):
-                                return 1.0
-
+            return (1.0 / (b.timer + 1)) ** 2
+    
+    # No bombs
     return 0
+
+# def if_expl(wrld, x, y):
+#     """Check if agent and future moves is within explosion"""
+#     for dx in [-1,0,1]:
+#         # Avoid out-of-bound indexing 
+#         if (x + dx >= 0) and (x + dx < wrld.width()):
+#             # Loop through y directions
+#             for dy in [-1,0,1]:
+#                 # Avoid out-of-bound indexing
+#                 if (y + dy >= 0) and (y + dy < wrld.height()):
+#                     for i in range(-1, 1):
+#                         for j in range(-1,1):
+#                             if wrld.explosion_at(x + dx + i, y + dy + j):
+#                                 return 1.0
+
+#     return 0
 
 def if_blocked(wrld, x, y):
     exit_loc = find_exit(wrld)
     path = astar((x,y), exit_loc, wrld)
-    obstacle = []
+    mcnt = 0
+
     for pos in path:
         if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
-            if wrld.wall_at(pos[0], pos[1]):
-                obstacle.append((pos, 'W'))
-            elif wrld.monsters_at(pos[0], pos[1]):
-                obstacle.append((pos, 'M'))
-    length = len(obstacle)
-    return 1.0 / (length + 1)
+            if wrld.monsters_at(pos[0], pos[1]):
+                mcnt += 1
+    
+    return 1.0 / (mcnt + 1)
+
+def if_bomb(wrld, x, y):
+    exit_loc = find_exit(wrld)
+    path = astar((x,y), exit_loc, wrld, False) #Astar to exit without minding walls
+    if len(path) > 0: 
+        for pos in path:
+            if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
+                if wrld.wall_at(pos[0], pos[1]): # Check if wall is in astar path 
+                    # Check if wall is in bomb radius if character places bomb
+                    b_range = expl_radius(wrld, x, y)
+                    if pos in b_range:
+                        return 1
+
+    return 0
 
 # HELPER FUNCTUIONS
 
@@ -247,14 +255,16 @@ def find_blasts(wrld):
     
     return explosions
 
-def find_walls(wrld, x, y):
-    """find number of surrounding walls"""
-    walls = []
-    for dx in [-1, 0, 1]:
+def expl_radius(wrld, x, y):
+    """Return radius of explosion given a bomb's location"""
+    e_range = set()
+
+    # Grab coordinates of explosion range
+    for dx in range(-wrld.expl_range, wrld.expl_range + 1):
         if (x + dx >= 0) and (x + dx < wrld.width()):
-            for dy in [-1, 0, 1]:
-                if not((dx == 0) and (dy == 0)):
-                    if (y + dy >= 0) and (y + dy < wrld.height()):
-                        if wrld.wall_at(x + dx, y + dy):
-                            walls.append((x + dx, y + dy))
-    return len(walls)
+            e_range.add((x + dx, y))
+    for dy in range(-wrld.expl_range, wrld.expl_range + 1):
+        if (y + dy >= 0) and (y + dy < wrld.height()):
+            e_range.add((x, y + dy))
+
+    return e_range

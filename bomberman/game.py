@@ -125,13 +125,13 @@ class Game:
         # User Exit
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.win = 1
                 return True
         # Time's up
         if self.world.time <= 0:
             return True
         # No more characters left
         if not self.world.characters:
+            self.win = self.world.win
             return True
         # Last man standing
         if not self.world.exitcell:
