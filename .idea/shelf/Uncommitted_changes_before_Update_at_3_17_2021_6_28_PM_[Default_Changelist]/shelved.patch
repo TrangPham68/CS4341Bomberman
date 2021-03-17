@@ -1,0 +1,428 @@
+Index: bomberman/game.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from real_world import RealWorld\r\nfrom events import Event\r\nimport colorama\r\nimport pygame\r\nimport math\r\n\r\nclass Game:\r\n    \"\"\"Game class\"\"\"\r\n\r\n    def __init__(self, width, height, max_time, bomb_time, expl_duration, expl_range, sprite_dir=\"../../bomberman/sprites/\"):\r\n        self.world = RealWorld.from_params(width, height, max_time, bomb_time, expl_duration, expl_range)\r\n        self.sprite_dir = sprite_dir\r\n        self.load_gui(width, height)\r\n        self.win = 0\r\n\r\n    @classmethod\r\n    def fromfile(cls, fname, sprite_dir=\"../../bomberman/sprites/\"):\r\n        with open(fname, 'r') as fd:\r\n            # First lines are parameters\r\n            max_time = int(fd.readline().split()[1])\r\n            bomb_time = int(fd.readline().split()[1])\r\n            expl_duration = int(fd.readline().split()[1])\r\n            expl_range = int(fd.readline().split()[1])\r\n            # Next line is top border, use it for width\r\n            width = len(fd.readline()) - 3\r\n            # Count the rows\r\n            startpos = fd.tell()\r\n            height = 0\r\n            row = fd.readline()\r\n            while row and row[0] == '|':\r\n                height = height + 1\r\n                if len(row) != width + 3:\r\n                    raise RuntimeError(\"Row\", height, \"is not\", width, \"characters long\")\r\n                row = fd.readline()\r\n            # Create empty world\r\n            gm = cls(width, height, max_time, bomb_time, expl_duration, expl_range, sprite_dir)\r\n            # Now parse the data in the world\r\n            fd.seek(startpos)\r\n            for y in range(0, height):\r\n                ln = fd.readline()\r\n                for x in range(0, width):\r\n                    if ln[x+1] == 'E':\r\n                        if not gm.world.exitcell:\r\n                            gm.world.add_exit(x,y)\r\n                        else:\r\n                            raise RuntimeError(\"There can be only one exit cell, first one found at\", x, y)\r\n                    elif ln[x+1] == 'W':\r\n                        gm.world.add_wall(x,y)\r\n            # All done\r\n            return gm\r\n\r\n    def load_gui(self, board_width, board_height):\r\n        pygame.init()\r\n        self.height = 24 * board_height\r\n        self.width = 24 * board_width\r\n        self.screen = pygame.display.set_mode((self.width, self.height))\r\n        self.block_height = int(math.floor(self.height / board_height))\r\n        self.block_width = int(math.floor(self.width / board_width))\r\n        rect = (self.block_height, self.block_width)\r\n        self.wall_sprite = pygame.image.load(self.sprite_dir + \"wall.png\")\r\n        self.wall_sprite = pygame.transform.scale(self.wall_sprite, rect)\r\n        self.bomberman_sprite = pygame.image.load(self.sprite_dir + \"bomberman.png\")\r\n        self.bomberman_sprite = pygame.transform.scale(self.bomberman_sprite, rect)\r\n        self.monster_sprite = pygame.image.load(self.sprite_dir + \"monster.png\")\r\n        self.monster_sprite = pygame.transform.scale(self.monster_sprite, rect)\r\n        self.portal_sprite = pygame.image.load(self.sprite_dir + \"portal.png\")\r\n        self.portal_sprite = pygame.transform.scale(self.portal_sprite, rect)\r\n        self.bomb_sprite = pygame.image.load(self.sprite_dir + \"bomb.png\")\r\n        self.bomb_sprite = pygame.transform.scale(self.bomb_sprite, rect)\r\n        self.explosion_sprite = pygame.image.load(self.sprite_dir + \"explosion.png\")\r\n        self.explosion_sprite = pygame.transform.scale(self.explosion_sprite, rect)\r\n\r\n    def display_gui(self):\r\n        for x in range(self.world.width()):\r\n            for y in range(self.world.height()):\r\n                top = self.block_height * y\r\n                left = self.block_width * x\r\n                pygame.draw.rect(self.screen, (65, 132, 15), [left, top, self.block_width, self.block_height])\r\n                rect = (left, top, self.block_width, self.block_height)\r\n                if self.world.wall_at(x, y): # Walls\r\n                    self.screen.blit(self.wall_sprite, rect)\r\n                if self.world.explosion_at(x, y): # Explosion\r\n                    self.screen.blit(self.explosion_sprite, rect)\r\n                if self.world.characters_at(x, y): # Player\r\n                    self.screen.blit(self.bomberman_sprite, rect)\r\n                if self.world.monsters_at(x, y): # Monster\r\n                    self.screen.blit(self.monster_sprite, rect)\r\n                if self.world.exit_at(x, y): # Portal\r\n                    self.screen.blit(self.portal_sprite, rect)\r\n                if self.world.bomb_at(x, y): # Bomb\r\n                    self.screen.blit(self.bomb_sprite, rect)\r\n        pygame.display.flip()\r\n\r\n    def go(self, wait=0):\r\n        \"\"\" Main game loop. \"\"\"\r\n\r\n        if wait is 0:\r\n            def step():\r\n                pygame.event.clear()\r\n                input(\"Press Enter to continue or CTRL-C to stop...\")\r\n        else:\r\n            def step():\r\n                pygame.time.wait(abs(wait))\r\n\r\n        colorama.init(autoreset=True)\r\n        self.display_gui()\r\n        self.draw()\r\n        step()\r\n        while not self.done():\r\n            (self.world, self.events) = self.world.next()\r\n            self.display_gui()\r\n            self.draw()\r\n            step()\r\n            self.world.next_decisions()\r\n        colorama.deinit()\r\n\r\n    ###################\r\n    # Private methods #\r\n    ###################\r\n\r\n    def draw(self):\r\n        self.world.printit()\r\n\r\n    def done(self):\r\n        # User Exit\r\n        for event in pygame.event.get():\r\n            if event.type == pygame.QUIT:\r\n                self.win = 1\r\n                return True\r\n        # Time's up\r\n        if self.world.time <= 0:\r\n            return True\r\n        # No more characters left\r\n        if not self.world.characters:\r\n            return True\r\n        # Last man standing\r\n        if not self.world.exitcell:\r\n            count = 0\r\n            for k,clist in self.world.characters.items():\r\n                count = count + len(clist)\r\n            if count == 0:\r\n                return True\r\n        return False\r\n\r\n    def add_monster(self, m):\r\n        self.world.add_monster(m)\r\n\r\n    def add_character(self, c):\r\n        self.world.add_character(c)\r\n\r\nclass Train(Game):\r\n    \"\"\"Training class\"\"\"\r\n    def __init__(self, width, height, max_time, bomb_time, expl_duration, expl_range, sprite_dir=\"../../bomberman/sprites/\"):\r\n        super().__init__(width, height, max_time, bomb_time, expl_duration, expl_range)\r\n\r\n    def train(self, wait=0):\r\n        \"\"\" Main game loop. \"\"\"\r\n\r\n        # if wait is 0:\r\n        #     def step():\r\n        #         pygame.event.clear()\r\n        #         input(\"Press Enter to continue or CTRL-C to stop...\")\r\n        # else:\r\n        #     def step():\r\n        #         pygame.time.wait(abs(wait))\r\n\r\n        # colorama.init(autoreset=True)\r\n        self.display_gui()\r\n        # step()\r\n        while not self.done():\r\n            (self.world, self.events) = self.world.next()\r\n            self.display_gui()\r\n            # step()\r\n            self.world.next_decisions()\r\n            self.draw()\r\n        # colorama.deinit()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bomberman/game.py b/bomberman/game.py
+--- a/bomberman/game.py	(revision 03e572f5e041eed95aedca916011e76ec79361b7)
++++ b/bomberman/game.py	(date 1616019884591)
+@@ -126,12 +126,15 @@
+         for event in pygame.event.get():
+             if event.type == pygame.QUIT:
+                 self.win = 1
++                # print("EXIT")
+                 return True
+         # Time's up
+         if self.world.time <= 0:
++
+             return True
+         # No more characters left
+         if not self.world.characters:
++            # print("LASTMAN")
+             return True
+         # Last man standing
+         if not self.world.exitcell:
+@@ -172,5 +175,5 @@
+             self.display_gui()
+             # step()
+             self.world.next_decisions()
+-            self.draw()
++        self.draw()
+         # colorama.deinit()
+\ No newline at end of file
+Index: group03/qlearning/qfunctions.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># This is necessary to find the main code\r\nimport math\r\nimport sys\r\nimport node\r\n\r\nsys.path.insert(0, '../bomberman')\r\n# Import necessary stuff\r\nfrom colorama import Fore, Back\r\nfrom sensed_world import SensedWorld\r\nfrom queue import PriorityQueue\r\n\r\n#FEATURES\r\n\r\ndef distance_to_monster(wrld, x, y):\r\n    \"\"\"# Find distance from character to nearest monster, normalized\"\"\"\r\n    m = find_closest_monster(wrld, x, y)\r\n\r\n    if not m: # If there is no monster\r\n        return 0 \r\n\r\n    path = astar((x,y), (m.x, m.y), wrld)\r\n    length = len(path) \r\n\r\n    return 1.0/(length + 1)\r\n\r\ndef distance_to_exit(wrld, x, y):\r\n    \"\"\"Find distance from character to exit, normalized\"\"\"\r\n    exit_loc = find_exit(wrld) \r\n\r\n    path = astar((x,y), exit_loc, wrld)\r\n    length = len(path) \r\n\r\n    return 1.0 / (length + 1)\r\n\r\ndef bomb_radius(wrld, x, y):\r\n    \"\"\"Find distance from character to closest bomb, normalized\"\"\"\r\n    danger = 0\r\n    bombs = list(wrld.bombs.values())\r\n    # If there are no bombs\r\n    if len(bombs) > 0:\r\n        b = find_closest_obj(wrld, bombs, x, y)\r\n        e_range = set()\r\n\r\n        # Grab coordinates of explosion range\r\n        for dx in range(-wrld.expl_range, wrld.expl_range + 1):\r\n            if (b.x + dx >= 0) and (b.x + dx < wrld.width()):\r\n                e_range.add((b.x + dx, b.y))\r\n        for dy in range(-wrld.expl_range, wrld.expl_range + 1):\r\n            if (b.y + dy >= 0) and (b.y + dy < wrld.height()):\r\n                e_range.add((b.x, b.y + dy))\r\n\r\n        # Penalize more if character in range and bomb is about to explode\r\n        if (x,y) in e_range:\r\n            if b.timer == 4:\r\n                danger = 0.25\r\n            elif b.timer == 2:\r\n                danger = 0.5\r\n            elif b.timer == 1:\r\n                danger = 1.0\r\n    return danger \r\n\r\ndef if_expl(wrld, x, y):\r\n    \"\"\"Check if agent and future moves is within explosion\"\"\"\r\n    for dx in [-1,0,1]:\r\n        # Avoid out-of-bound indexing \r\n        if (x + dx >= 0) and (x + dx < wrld.width()):\r\n            # Loop through y directions\r\n            for dy in [-1,0,1]:\r\n                # Avoid out-of-bound indexing\r\n                if (y + dy >= 0) and (y + dy < wrld.height()):\r\n                    for i in range(-1, 1):\r\n                        for j in range(-1,1):\r\n                            if wrld.explosion_at(x + dx + i, y + dy + j) or wrld.bomb_at(x + dx + i, y + dy + j):\r\n                                return 1.0\r\n    return 0\r\n\r\ndef if_blocked(wrld, x, y):\r\n    exit_loc = find_exit(wrld)\r\n    path = astar((x,y), exit_loc, wrld,  False)\r\n    obstacle = []\r\n    for pos in path:\r\n        if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):\r\n            if wrld.wall_at(pos[0], pos[1]):\r\n                obstacle.append((pos, 'W'))\r\n            elif wrld.monsters_at(pos[0], pos[1]):\r\n                obstacle.append((pos, 'M'))\r\n    length = len(obstacle)\r\n    return 1.0 / (length + 1)\r\n\r\n# HELPER FUNCTUIONS\r\n\r\ndef create_node(pos):\r\n    \"\"\"create a Node of a specific location\"\"\"\r\n    return node.Node(pos)\r\n\r\ndef get_heuristic(start, end):  # for now just compute distance\r\n    \"\"\"return the heuristic value from start point to end point\"\"\"\r\n    return get_distance(start, end)  \r\n\r\ndef get_distance(start, end):  # compute distance\r\n    \"\"\"return Manhatten distance from start to end point\"\"\"\r\n    # return math.sqrt(math.pow(start[0] - end[0], 2) + math.pow(start[1] - end[1], 2))\r\n    (x1,y1) = start[0], start[1]\r\n    (x2,y2) = end[0], end[1]\r\n    return abs(x1 - x2) + abs(y1 -y2)\r\n\r\ndef get_path(startNode, endNode):\r\n    \"\"\"return the list of (x, y) point from start to end by backtracking parent node from end\"\"\"\r\n    current = endNode\r\n    path = []\r\n\r\n    while (not current == startNode):\r\n        path.insert(0, current.getNodePos())\r\n        current = current.getParent()\r\n\r\n    path.insert(0, startNode.getNodePos())\r\n    return path\r\n\r\ndef get_neighbors(wrld,pos):\r\n    \"\"\"get all the possible neighbor location and return a set of (x,y) neighbors\"\"\"\r\n    neighbor = []\r\n    x = pos[0]\r\n    y = pos[1]\r\n\r\n    for dx in [-1, 0, 1]:\r\n        if (x + dx >= 0) and (x + dx < wrld.width()):\r\n            for dy in [-1, 0, 1]:\r\n                if not ((dx == 0) and (dy == 0)):\r\n                    if (y + dy >= 0) and (y + dy < wrld.height()):\r\n                        neighbor.append((x + dx, y + dy))\r\n    \r\n    return neighbor\r\n        \r\ndef astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)\r\n    \"\"\"Apply Astar to find the closest path from start to end in world\"\"\"\r\n    startNode = create_node(start)\r\n    endNode = create_node(end)\r\n\r\n\r\n    seenNeighbor = {}\r\n\r\n    frontier = PriorityQueue()\r\n    startNode.setCostSoFar(0)\r\n    startNode.setEstCost(get_heuristic(start, end))\r\n    frontier.put(startNode)\r\n    seenNeighbor[start] = startNode\r\n    path = []\r\n\r\n    while (not frontier.empty()):\r\n        next = frontier.get()\r\n        #visited[next.getNodePos()] = next\r\n\r\n        if next.getNodePos() == endNode.getNodePos():\r\n            path = get_path(startNode, next)\r\n            break\r\n        neighbor = get_neighbors(world, next.getNodePos())\r\n        for i in neighbor:\r\n            # if wall, ignore\r\n            if (ignoreWall and world.wall_at(i[0], i[1])):\r\n                continue\r\n\r\n            if not i in seenNeighbor:\r\n                node = create_node(i)\r\n                seenNeighbor[i] = node\r\n            else:\r\n                node = seenNeighbor.get(i)\r\n\r\n\r\n            if (next.getParent() == None or not (node == next.getParent())):\r\n            # if the node is not next parents -> avoid duplicate path\r\n                if (next.getCostSoFar() == math.inf):\r\n                    next.setCostSoFar(0)\r\n                cost = get_distance(next.getNodePos(), node.getNodePos()) + next.getCostSoFar()\r\n\r\n                if (cost < node.getCostSoFar()):\r\n                    node.setParent(next)\r\n                    node.setCostSoFar(cost)\r\n                    node.setEstCost(cost + get_heuristic(node.getNodePos(), endNode.getNodePos()))\r\n                    frontier.put(node)\r\n\r\n    return path #return empty if we find no path\r\n\r\ndef find_closest_obj(wrld, objs, x, y):\r\n    \"\"\"find closest object to character\"\"\"\r\n\r\n    if len(objs) == 0:\r\n        return 0 \r\n    closest_o = objs[0]\r\n    \r\n    for o in objs:\r\n        # Find distance from (x,y) to object\r\n        d1 = get_distance((x,y), (o.x, o.y)) \r\n        d2 = get_distance((x,y), (closest_o.x, closest_o.y))\r\n\r\n        # If d1 is closer than d2\r\n        if d1 < d2:\r\n            closest_o = o\r\n\r\n    return closest_o\r\n\r\ndef find_closest_monster(wrld, x, y):\r\n    \"\"\"\r\n    Finds the monster closest to a given position, if any\r\n    Returns the entity\r\n    \"\"\"\r\n    m = 0\r\n    monsters = wrld.monsters.values()\r\n\r\n    if len(monsters) == 1:\r\n        m = next(iter(monsters))[0]\r\n    elif len(monsters) == 2:\r\n        monster = iter(wrld.monsters.values())\r\n        m1 = next(monster)[0]\r\n        m2 = next(monster)[0]\r\n        m_pos_list = [(m1.x, m1.y), (m2.x, m2.y)]\r\n        m_closest = find_closest_obj(wrld, m_pos_list, x, y)\r\n        if m_closest == m_pos_list[0]:\r\n            m = m1 \r\n        else:\r\n            m = m2\r\n\r\n    return m\r\n\r\ndef find_exit(wrld): \r\n    \"\"\"finds the position of the exit\"\"\"\r\n    for x in range(wrld.width()):\r\n        for y in range(wrld.height()):\r\n            if wrld.exit_at(x,y):\r\n                return x,y\r\n\r\n\r\ndef find_bombs(wrld):\r\n    \"\"\"find all bombs in world\"\"\"\r\n    bombs = []\r\n    for x in range(wrld.width()):\r\n        for y in range(wrld.height()):\r\n            if wrld.bomb_at(x,y):\r\n                bombs.append((x,y))\r\n    return bombs\r\n\r\ndef find_blasts(wrld):\r\n    \"\"\"find all bombs in world\"\"\"\r\n    explosions = []\r\n    for x in range(wrld.width()):\r\n        for y in range(wrld.height()):\r\n            if wrld.explosion_at(x,y):\r\n                explosions.append((x,y))\r\n    \r\n    return explosions\r\n\r\ndef find_walls(wrld, x, y):\r\n    \"\"\"find number of surrounding walls\"\"\"\r\n    walls = []\r\n    for dx in [-1, 0, 1]:\r\n        if (x + dx >= 0) and (x + dx < wrld.width()):\r\n            for dy in [-1, 0, 1]:\r\n                if not((dx == 0) and (dy == 0)):\r\n                    if (y + dy >= 0) and (y + dy < wrld.height()):\r\n                        if wrld.wall_at(x + dx, y + dy):\r\n                            walls.append((x + dx, y + dy))\r\n    return len(walls)
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/qlearning/qfunctions.py b/group03/qlearning/qfunctions.py
+--- a/group03/qlearning/qfunctions.py	(revision 03e572f5e041eed95aedca916011e76ec79361b7)
++++ b/group03/qlearning/qfunctions.py	(date 1616018109871)
+@@ -61,18 +61,23 @@
+ 
+ def if_expl(wrld, x, y):
+     """Check if agent and future moves is within explosion"""
++
++    if wrld.explosion_at(x, y):
++        return 1.0
++    sum = 0
++
+     for dx in [-1,0,1]:
+-        # Avoid out-of-bound indexing 
++        # Avoid out-of-bound indexing
+         if (x + dx >= 0) and (x + dx < wrld.width()):
+             # Loop through y directions
+             for dy in [-1,0,1]:
+                 # Avoid out-of-bound indexing
+                 if (y + dy >= 0) and (y + dy < wrld.height()):
+-                    for i in range(-1, 1):
+-                        for j in range(-1,1):
+-                            if wrld.explosion_at(x + dx + i, y + dy + j) or wrld.bomb_at(x + dx + i, y + dy + j):
+-                                return 1.0
+-    return 0
++                    # for i in range(-1, 1):
++                    #     for j in range(-1,1):
++                    if wrld.explosion_at(x + dx, y + dy):
++                        sum = sum + 0.1
++    return sum
+ 
+ def if_blocked(wrld, x, y):
+     exit_loc = find_exit(wrld)
+Index: group03/qlearning/weights.csv
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>dist_to_monsters,-50\r\ndist_to_exit,50\r\nbomb_range,-30\r\nblast,-300\r\nblocked,-75
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/qlearning/weights.csv b/group03/qlearning/weights.csv
+--- a/group03/qlearning/weights.csv	(revision 03e572f5e041eed95aedca916011e76ec79361b7)
++++ b/group03/qlearning/weights.csv	(date 1616020135455)
+@@ -1,5 +1,5 @@
+-dist_to_monsters,-50
+-dist_to_exit,50
+-bomb_range,-30
+-blast,-300
+-blocked,-75
+\ No newline at end of file
++dist_to_monsters,11.897700658750887
++dist_to_exit,71.25358214409852
++bomb_range,12.824257952168502
++blast,-90.6111025509167
++blocked,-34.3418212084449
+Index: group03/qlearning/qlearner.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># This is necessary to find the main code\r\nimport math\r\nimport sys\r\nimport random \r\n\r\nsys.path.insert(0, '../bomberman')\r\n# Import necessary stuff\r\nfrom entity import CharacterEntity\r\nfrom colorama import Fore, Back\r\nfrom sensed_world import SensedWorld\r\nfrom events import Event \r\n\r\nsys.path.insert(1, '../bomberman/group03')\r\nimport qfunctions as qf\r\nfrom actions import Actions, Pos\r\n\r\n# Main Q Learning Agent \r\nclass QAgent(CharacterEntity):\r\n    def __init__(self, name, player, x, y, weights):\r\n        CharacterEntity.__init__(self, name, player, x, y) \r\n        self.learning_rate = 0.01\r\n        self.discount_factor = 0.7\r\n        self.epsilon = 0.25\r\n        self.weights = weights\r\n        self.last_q = 0\r\n        self.current_action = (0,0)\r\n        self.current_pos = (0,0)\r\n        self.last_pos = (0,0)\r\n        self.last_c = None\r\n        self.win = 0\r\n\r\n    def do(self, wrld):\r\n        # Find character\r\n        c = wrld.me(self)\r\n        print('\\n')\r\n        print(\"STARTING\")\r\n        print(c.x, c.y)\r\n        print(\"___________________________________________________________________________\")\r\n        print('\\n')\r\n\r\n        if self.last_q:\r\n            last_action = self.current_action\r\n            last_action = (-last_action[0], -last_action[1])\r\n            self.update_weights(wrld, last_action, self.last_c)\r\n\r\n        print(\"Weights Updated\")\r\n        action = self.get_action(wrld, c.x, c.y)\r\n        move = Pos[action].value\r\n\r\n        self.current_action = move\r\n        self.last_q = self.q_value(wrld, self.current_action, c.x, c.y)\r\n        self.last_pos = (c.x, c.y)\r\n        self.last_c = c\r\n        self.current_pos = (c.x + move[0], c.y + move[1])\r\n\r\n        # Place bomb if bomb action is selected\r\n        if action == \"BOMB\":\r\n            self.place_bomb()\r\n        print('\\n')\r\n        print('PICKED')\r\n        print(c.x + move[0], c.y + move[1])\r\n        self.move(move[0], move[1])\r\n\r\n\r\n    def get_legal_actions(self, wrld, curr_pos):\r\n        \"\"\"Returns all possible actions given a position\"\"\"\r\n        x, y = (curr_pos[0], curr_pos[1])\r\n        actions = []\r\n\r\n        for i in range(10):\r\n            a = Actions(i).name\r\n            dx = Pos[a].value[0]\r\n            dy = Pos[a].value[1]\r\n            if (x + dx >= 0) and (x + dx < wrld.width()):\r\n                if (y + dy >= 0) and (y + dy < wrld.height()):\r\n                    if not wrld.wall_at(x + dx, y + dy) and not wrld.bomb_at(x + dx, y + dy) and not wrld.explosion_at(x + dx, y + dy):\r\n                        if a == \"BOMB\" and len(wrld.bombs) > 0:\r\n                            continue\r\n                        actions.append(a)\r\n        return actions\r\n\r\n    def extract_features(self, wrld, x, y):\r\n        \"\"\"Returns a dictionary of calculated features\"\"\"\r\n        features = {}\r\n        features['dist_to_monsters'] = qf.distance_to_monster(wrld, x, y)\r\n        features['dist_to_exit'] = qf.distance_to_exit(wrld, x, y)\r\n        features['bomb_range'] = qf.bomb_radius(wrld, x, y)\r\n        features['blast'] = qf.if_expl(wrld, x, y)\r\n        features['blocked'] = qf.if_blocked(wrld,x,y)\r\n        # features['m_range'] = qf.monster_within_radius(wrld,x,y)\r\n        return features\r\n\r\n    def q_value(self, wrld, action, x, y):\r\n        \"\"\"Finds the qvalue of a state-action pair\"\"\"\r\n        print(\"X:\", x + action[0],\" Y:\", y + action[1])\r\n        q = 0 \r\n        fvec = self.extract_features(wrld, x + action[0], y + action[1]) \r\n        #print(\"FVEC: \", fvec)\r\n        for f in fvec:\r\n            print(f, self.weights[f], fvec[f])\r\n            q += self.weights[f] * fvec[f] \r\n        print(q)\r\n        return q\r\n\r\n    def get_best_action(self,wrld,x,y):\r\n        \"\"\"\r\n        Calculate the best action for character taking into account monster\r\n        makes optimal moves with limited visibility.\r\n        Returns best action and Q(s,a) as a tuple \r\n        \"\"\"\r\n        best_action = \"STAY\"\r\n        qmax = 0\r\n        m = qf.find_closest_monster(wrld, x, y)\r\n        q_table = {}\r\n        \r\n        #Iterate through possible character moves\r\n        legal_a = self.get_legal_actions(wrld,(x,y))\r\n        print(legal_a)\r\n\r\n        for action in legal_a:\r\n            # If character is still alive\r\n            if wrld.me(self):\r\n                a = Pos[action].value\r\n                # If we want to place a bomb\r\n                if action == \"BOMB\":\r\n                    wrld.me(self).place_bomb()\r\n                # Move character\r\n                wrld.me(self).move(a[0], a[1])\r\n                print(a[0], a[1])\r\n\r\n                # If there is a monster\r\n                if m:\r\n                    # Assume monster has limited visibility\r\n                    m_loc = (m.x, m.y)\r\n                    m_best_step = (0,0)\r\n\r\n                    # Find optimal monster move\r\n                    path = qf.astar(m_loc, (x + a[0], y + a[1]), wrld)\r\n                    \r\n                    if len(path) > 1:\r\n                        next_pos = path[1]\r\n                        m_best_step = (next_pos[0] - m.x, next_pos[1] - m.y)\r\n                    \r\n                    # Set monster move in Sensed World\r\n                    m.move(m_best_step[0], m_best_step[1])\r\n                    # Go to next state\r\n                    next_state, events = wrld.next()\r\n                    next_state.printit()\r\n                    # Find optimal character move assuming monster makes best move for self\r\n                    q = self.q_value(next_state, a, x, y)\r\n                    q_table[action] = q\r\n        \r\n        qtable = list(q_table.values())\r\n        if len(qtable) > 0:\r\n            qmax = max(qtable)\r\n            for k,v in q_table.items():\r\n                if v == qmax:\r\n                    best_action = k\r\n\r\n        return best_action, qmax\r\n\r\n    def get_action(self, wrld, x, y):\r\n        \"\"\"Take action with epsilon-greedy implementation\"\"\"\r\n        new_action = \"STAY\"\r\n\r\n        legal_a = self.get_legal_actions(wrld, (x,y))\r\n        # Generate random number\r\n        r = random.random()\r\n\r\n        if len(legal_a) > 0:\r\n            if (r < self.epsilon):\r\n                new_action = random.choice(legal_a)\r\n            else:\r\n                new_action = self.get_best_action(wrld, x, y)[0]\r\n        return new_action \r\n    \r\n    def eval_state(self, wrld, curr_pos):\r\n        # If no events,  evaluate state based on ratio between distance to monster and exit\r\n        x, y = curr_pos[0], curr_pos[1]\r\n        \r\n        exit_loc = qf.find_exit(wrld) \r\n        exit_path = qf.astar((x,y), exit_loc, wrld)\r\n        exit_length = len(exit_path) \r\n\r\n        m = qf.find_closest_monster(wrld, x, y)\r\n\r\n        if not m: # If there is no monster\r\n            return 0 \r\n\r\n        m_path = qf.astar((x,y), (m.x, m.y), wrld)\r\n        m_length = len(m_path) \r\n\r\n        return (1/(exit_length + 1)) - (1/(m_length + 1))\r\n\r\n    def calc_rewards(self, wrld, x, y):\r\n        \"\"\"\r\n        Loop over heuristics function and evaluate at current worldstate\r\n        return sum of heuristics\r\n        \"\"\"\r\n        r = 0\r\n        if wrld.exit_at(x,y):\r\n            r = 150\r\n        elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):\r\n            r = 50\r\n        elif len(wrld.events) > 0:\r\n            for e in wrld.events:\r\n                if e.tpe == Event.BOMB_HIT_MONSTER:\r\n                    r = 20\r\n                elif e.tpe == Event.BOMB_HIT_WALL and wrld.me(self) is not None:\r\n                    r = 20\r\n        else:\r\n            r = 1\r\n        return r\r\n\r\n    def next_best_state(self, current_state, x, y, a):\r\n        \"\"\"Get the next best state's q value from a given position\"\"\"\r\n        next_pos = (x + a[0], y + a[1])  # Where character is located in next state\r\n        current_state.me(self).move(a[0],a[1]) # Move character in the sensed world \r\n        next_state, events = current_state.next()\r\n        next_action, q = self.get_best_action(next_state, next_pos[0], next_pos[1]) # Get best move in this state  \r\n\r\n        return q\r\n        \r\n    def update_weights(self, current_state, current_action, c):\r\n        \"\"\"Update the weights for Q(s,a)\"\"\"\r\n        print(\"\\n===========================\")\r\n        # print(\"UPDATING WEIGHTS:\")\r\n        print(\"Current action: \", current_action)\r\n        reward = self.calc_rewards(current_state, c.x, c.y)\r\n        #print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))\r\n        current_utility = self.q_value(current_state, current_action, c.x, c.y)\r\n\r\n        # Get best action in next state\r\n        q = self.next_best_state(current_state, c.x, c.y, current_action)\r\n\r\n        #print(\"Reward:\", reward, \"Current utility:\", current_utility)\r\n\r\n        # delta = reward + v(max(a')(Q(s',a'))) - Q(s,a)\r\n        delta = (reward + (self.discount_factor * q)) - current_utility\r\n        \r\n        # w = w + alpha * delta * f(s,a)\r\n        fvec = self.extract_features(current_state, c.x, c.y)\r\n        for f in fvec:\r\n            self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/qlearning/qlearner.py b/group03/qlearning/qlearner.py
+--- a/group03/qlearning/qlearner.py	(revision 03e572f5e041eed95aedca916011e76ec79361b7)
++++ b/group03/qlearning/qlearner.py	(date 1616020103104)
+@@ -32,18 +32,11 @@
+     def do(self, wrld):
+         # Find character
+         c = wrld.me(self)
+-        print('\n')
+-        print("STARTING")
+-        print(c.x, c.y)
+-        print("___________________________________________________________________________")
+-        print('\n')
+ 
+         if self.last_q:
+             last_action = self.current_action
+-            last_action = (-last_action[0], -last_action[1])
+             self.update_weights(wrld, last_action, self.last_c)
+ 
+-        print("Weights Updated")
+         action = self.get_action(wrld, c.x, c.y)
+         move = Pos[action].value
+ 
+@@ -56,9 +49,8 @@
+         # Place bomb if bomb action is selected
+         if action == "BOMB":
+             self.place_bomb()
+-        print('\n')
+-        print('PICKED')
+-        print(c.x + move[0], c.y + move[1])
++
++        #print(self.current_action)
+         self.move(move[0], move[1])
+ 
+ 
+@@ -92,14 +84,14 @@
+ 
+     def q_value(self, wrld, action, x, y):
+         """Finds the qvalue of a state-action pair"""
+-        print("X:", x + action[0]," Y:", y + action[1])
++        #print("X:", x + action[0]," Y:", y + action[1])
+         q = 0 
+         fvec = self.extract_features(wrld, x + action[0], y + action[1]) 
+         #print("FVEC: ", fvec)
+         for f in fvec:
+-            print(f, self.weights[f], fvec[f])
++            #print(f, self.weights[f], fvec[f])
+             q += self.weights[f] * fvec[f] 
+-        print(q)
++        #print(q)
+         return q
+ 
+     def get_best_action(self,wrld,x,y):
+@@ -115,7 +107,6 @@
+         
+         #Iterate through possible character moves
+         legal_a = self.get_legal_actions(wrld,(x,y))
+-        print(legal_a)
+ 
+         for action in legal_a:
+             # If character is still alive
+@@ -126,7 +117,6 @@
+                     wrld.me(self).place_bomb()
+                 # Move character
+                 wrld.me(self).move(a[0], a[1])
+-                print(a[0], a[1])
+ 
+                 # If there is a monster
+                 if m:
+@@ -145,7 +135,7 @@
+                     m.move(m_best_step[0], m_best_step[1])
+                     # Go to next state
+                     next_state, events = wrld.next()
+-                    next_state.printit()
++                    # next_state.printit()
+                     # Find optimal character move assuming monster makes best move for self
+                     q = self.q_value(next_state, a, x, y)
+                     q_table[action] = q
+@@ -154,6 +144,7 @@
+         if len(qtable) > 0:
+             qmax = max(qtable)
+             for k,v in q_table.items():
++                #print(k,v)
+                 if v == qmax:
+                     best_action = k
+ 
+@@ -172,6 +163,7 @@
+                 new_action = random.choice(legal_a)
+             else:
+                 new_action = self.get_best_action(wrld, x, y)[0]
++
+         return new_action 
+     
+     def eval_state(self, wrld, curr_pos):
+@@ -199,15 +191,15 @@
+         """
+         r = 0
+         if wrld.exit_at(x,y):
+-            r = 150
++            r = 400
+         elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
+-            r = 50
++            r = 400
+         elif len(wrld.events) > 0:
+             for e in wrld.events:
+                 if e.tpe == Event.BOMB_HIT_MONSTER:
+-                    r = 20
++                    r = 75
+                 elif e.tpe == Event.BOMB_HIT_WALL and wrld.me(self) is not None:
+-                    r = 20
++                    r = 60
+         else:
+             r = 1
+         return r
+@@ -223,9 +215,9 @@
+         
+     def update_weights(self, current_state, current_action, c):
+         """Update the weights for Q(s,a)"""
+-        print("\n===========================")
++        # print("\n===========================")
+         # print("UPDATING WEIGHTS:")
+-        print("Current action: ", current_action)
++        # print("Current action: ", current_action)
+         reward = self.calc_rewards(current_state, c.x, c.y)
+         #print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))
+         current_utility = self.q_value(current_state, current_action, c.x, c.y)
+Index: bomberman/world.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from entity import *\r\nfrom events import Event\r\nimport sys\r\nfrom colorama import Fore, Back, Style\r\n\r\nclass World:\r\n\r\n    def __init__(self):\r\n        \"\"\"Class constructor\"\"\"\r\n        # Time for bomb to explode\r\n        self.bomb_time = -1\r\n        # Explosion duration\r\n        self.expl_duration = -1\r\n        # Explosion range\r\n        self.expl_range = -1\r\n        # A pointer to the exit cell, if present\r\n        self.exitcell = None\r\n        # Time left\r\n        self.time = -1\r\n        # Grid of cell types\r\n        self.grid       = None\r\n        # List of dynamic elements\r\n        self.bombs      = {}\r\n        self.explosions = {}\r\n        self.monsters   = {}\r\n        self.characters = {}\r\n        # Scores\r\n        self.scores = {}\r\n        # Events\r\n        self.events = []\r\n\r\n    @classmethod\r\n    def from_params(cls, width, height, max_time, bomb_time, expl_duration, expl_range):\r\n        \"\"\"Create a new empty world state\"\"\"\r\n        new = cls()\r\n        new.bomb_time     = bomb_time\r\n        new.expl_duration = expl_duration\r\n        new.expl_range    = expl_range\r\n        new.time          = max_time\r\n        new.grid          = [[False for y in range(height)] for x in range(width)]\r\n        return new\r\n        \r\n    def width(self):\r\n        \"\"\"Returns the world width\"\"\"\r\n        return len(self.grid)\r\n\r\n    def height(self):\r\n        \"\"\"Returns the world height\"\"\"\r\n        return len(self.grid[0])\r\n\r\n    def empty_at(self, x, y):\r\n        \"\"\"Returns True if there is nothing at (x,y)\"\"\"\r\n        return not (self.exit_at(x,y) or\r\n                    self.wall_at(x,y) or\r\n                    self.bomb_at(x,y) or\r\n                    self.explosion_at(x,y) or\r\n                    self.monsters_at(x,y) or\r\n                    self.characters_at(x,y))\r\n\r\n    def exit_at(self, x, y):\r\n        \"\"\"Returns True if there is an exit at (x,y)\"\"\"\r\n        return self.exitcell == (x,y)\r\n\r\n    def wall_at(self, x, y):\r\n        \"\"\"Returns True if there is a wall at (x,y)\"\"\"\r\n        return self.grid[x][y]\r\n\r\n    def bomb_at(self, x, y):\r\n        \"\"\"Returns the bomb at (x,y) or None\"\"\"\r\n        return self.bombs.get(self.index(x,y))\r\n\r\n    def explosion_at(self, x, y):\r\n        \"\"\"Returns the explosion at (x,y) or None\"\"\"\r\n        return self.explosions.get(self.index(x,y))\r\n\r\n    def monsters_at(self, x, y):\r\n        \"\"\"Returns the monsters at (x,y) or None\"\"\"\r\n        return self.monsters.get(self.index(x,y))\r\n\r\n    def characters_at(self, x, y):\r\n        \"\"\"Returns the characters at (x,y) or None\"\"\"\r\n        return self.characters.get(self.index(x,y))\r\n\r\n    def next(self):\r\n        \"\"\"Returns a new world state, along with the events that occurred\"\"\"\r\n        raise NotImplementedError(\"Method not implemented\")\r\n\r\n    def printit(self):\r\n        \"\"\"Prints the current state of the world\"\"\"\r\n        border = \"+\" + \"-\" * self.width() + \"+\\n\"\r\n        print(\"\\nTIME LEFT: \", self.time)\r\n        sys.stdout.write(border)\r\n        for y in range(self.height()):\r\n            sys.stdout.write(\"|\")\r\n            for x in range(self.width()):\r\n                if self.characters_at(x,y):\r\n                    for c in self.characters_at(x,y):\r\n                        sys.stdout.write(Back.GREEN + c.avatar)\r\n                elif self.monsters_at(x,y):\r\n                    for m in self.monsters_at(x,y):\r\n                        sys.stdout.write(Back.BLUE + m.avatar)\r\n                elif self.exit_at(x,y):\r\n                    sys.stdout.write(Back.YELLOW + \"#\")\r\n                elif self.bomb_at(x,y):\r\n                    sys.stdout.write(Back.MAGENTA + \"@\")\r\n                elif self.explosion_at(x,y):\r\n                    sys.stdout.write(Fore.RED + \"*\")\r\n                elif self.wall_at(x,y):\r\n                    sys.stdout.write(Back.WHITE + \" \")\r\n                else:\r\n                    tile = False\r\n                    for k,clist in self.characters.items():\r\n                        for c in clist:\r\n                            if c.tiles.get((x,y)):\r\n                                sys.stdout.write(c.tiles[(x,y)] + \".\")\r\n                                tile = True\r\n                                break\r\n                    if not tile:\r\n                        sys.stdout.write(\" \")\r\n                sys.stdout.write(Style.RESET_ALL)\r\n            sys.stdout.write(\"|\\n\")\r\n        sys.stdout.write(border)\r\n        sys.stdout.flush()\r\n        print(\"SCORES\")\r\n        for c,s in self.scores.items():\r\n            print(c,s)\r\n        print(\"EVENTS\")\r\n        for e in self.events:\r\n            print(e)\r\n\r\n    ###################\r\n    # Private methods #\r\n    ###################\r\n\r\n    def index(self, x, y):\r\n        \"\"\"Returns an index used in internal dictionaries\"\"\"\r\n        return x + y * self.width()\r\n\r\n    def add_explosion(self, x, y, bomb):\r\n        \"\"\"Adds an explosion to the world state\"\"\"\r\n        self.explosions[self.index(x,y)] = ExplosionEntity(x, y, self.expl_duration, bomb.owner)\r\n\r\n    def add_bomb(self, x, y, character):\r\n        \"\"\"Adds a bomb to the world state\"\"\"\r\n        self.bombs[self.index(x,y)] = BombEntity(x, y, self.bomb_time, character)\r\n\r\n    def remove_character(self, character):\r\n        # Remove character if it exists\r\n        i = self.index(character.x, character.y)\r\n        if (i in self.characters) and (character in self.characters[i]):\r\n            self.characters[i].remove(character)\r\n            # New code\r\n            if not self.characters[i]:\r\n                del self.characters[i]\r\n\r\n    def check_blast(self, bomb, x, y):\r\n        # Check if a wall has been hit\r\n        if self.wall_at(x, y):\r\n            return [Event(Event.BOMB_HIT_WALL, bomb.owner)]\r\n        # Check monsters and characters\r\n        ev = []\r\n        # Check if a monster has been hit\r\n        mlist = self.monsters_at(x,y)\r\n        if mlist:\r\n            for m in mlist:\r\n                ev.append(Event(Event.BOMB_HIT_MONSTER, bomb.owner, m))\r\n                self.monsters[self.index(x,y)].remove(m)\r\n        # Check if a character has been hit\r\n        clist = self.characters_at(x,y)\r\n        if clist:\r\n            for c in clist:\r\n                ev.append(Event(Event.BOMB_HIT_CHARACTER, bomb.owner, c))\r\n                self.remove_character(c)\r\n        # Return collected events\r\n        return ev\r\n\r\n    def add_blast_dxdy(self, bomb, dx, dy):\r\n        # Current position\r\n        xx = bomb.x + dx\r\n        yy = bomb.y + dy\r\n        # Range\r\n        rnge = 0\r\n        while ((rnge < self.expl_range) and\r\n               (xx >= 0) and (xx < self.width()) and\r\n               (yy >= 0) and (yy < self.height())):\r\n            # Cannot destroy exit or another bomb\r\n            if (self.exitcell == (xx,yy)) or (self.bomb_at(xx, yy)):\r\n                return []\r\n            # Place explosion\r\n            self.add_explosion(xx, yy, bomb)\r\n            # Check what has been killed, stop if so\r\n            ev = self.check_blast(bomb, xx, yy)\r\n            if ev:\r\n                return ev\r\n            # Next cell\r\n            xx = xx + dx\r\n            yy = yy + dy\r\n            rnge = rnge + 1\r\n        # No events happened\r\n        return []\r\n\r\n    def add_blast(self, bomb):\r\n        \"\"\"Add blast, return hit events\"\"\"\r\n        # Add explosion at current position\r\n        self.add_explosion(bomb.x, bomb.y, bomb)\r\n        # Check what has been killed, stop if so\r\n        ev = self.check_blast(bomb, bomb.x, bomb.y)\r\n        if ev:\r\n            return ev\r\n        # Add explosions within range\r\n        ev =      self.add_blast_dxdy(bomb, 1, 0)\r\n        ev = ev + self.add_blast_dxdy(bomb,-1, 0)\r\n        ev = ev + self.add_blast_dxdy(bomb, 0, 1)\r\n        ev = ev + self.add_blast_dxdy(bomb, 0,-1)\r\n        return ev\r\n\r\n    def update_movable_entity(self, e):\r\n        \"\"\"Moves a movable entity in the world, return True if actually moved\"\"\"\r\n        # Get the desired next position of the entity\r\n        (nx, ny) = e.nextpos()\r\n        # Make sure the position is within the bounds\r\n        nx = max(0, min(self.width() - 1, nx))\r\n        ny = max(0, min(self.height() - 1, ny))\r\n        # Make sure we are actually moving\r\n        if(((nx != e.x) or (ny != e.y)) and (not self.wall_at(nx, ny))):\r\n            # Save new entity position\r\n            e.x = nx\r\n            e.y = ny\r\n            return True\r\n        return False\r\n\r\n    def update_monster_move(self, monster, update_dict):\r\n        # Save old index\r\n        oi = self.index(monster.x, monster.y)\r\n        # Try to move\r\n        if self.update_movable_entity(monster):\r\n            ev = []\r\n            # Check for collision with explosion\r\n            expl = self.explosion_at(monster.x, monster.y)\r\n            if expl:\r\n                ev.append(Event(Event.BOMB_HIT_MONSTER, expl.owner, monster))\r\n                if update_dict:\r\n                    # Remove monster\r\n                    self.monsters[oi].remove(monster)\r\n                return ev\r\n            # Otherwise, the monster can walk safely\r\n            if update_dict:\r\n                # Remove monster from previous position\r\n                self.monsters[oi].remove(monster)\r\n                # Put monster in new position\r\n                ni = self.index(monster.x, monster.y)\r\n                np = self.monsters.get(ni, [])\r\n                np.append(monster)\r\n                self.monsters[ni] = np                \r\n            # Check for collisions with characters\r\n            characters = self.characters_at(monster.x, monster.y)\r\n            if characters:\r\n                for c in characters:\r\n                    ev.append(Event(Event.CHARACTER_KILLED_BY_MONSTER, c, monster))\r\n                return ev\r\n        return []\r\n\r\n    def update_character_move(self, character, update_dict):\r\n        # Save old index\r\n        oi = self.index(character.x, character.y)\r\n        # Try to move\r\n        if self.update_movable_entity(character):\r\n            ev = []\r\n            # Check for collision with explosion\r\n            expl = self.explosion_at(character.x, character.y)\r\n            if expl:\r\n                ev.append(Event(Event.BOMB_HIT_CHARACTER, expl.owner, character))\r\n                if update_dict:\r\n                    # Remove character\r\n                    self.characters[oi].remove(character)\r\n                return ev\r\n            # Otherwise, the character can walk\r\n            if update_dict:\r\n                # Remove character from previous position\r\n                self.characters[oi].remove(character)\r\n                # Put character in new position\r\n                ni = self.index(character.x, character.y)\r\n                np = self.characters.get(ni, [])\r\n                np.append(character)\r\n                self.characters[ni] = np\r\n            # Check for collision with monster\r\n            monsters = self.monsters_at(character.x, character.y)\r\n            if monsters:\r\n                return [Event(Event.CHARACTER_KILLED_BY_MONSTER,\r\n                              character, monsters[0])]\r\n            # Check for exit cell\r\n            if self.exitcell == (character.x, character.y):\r\n                return [Event(Event.CHARACTER_FOUND_EXIT, character)]\r\n        return []\r\n\r\n    def update_explosions(self):\r\n        \"\"\"Updates explosions\"\"\"\r\n        todelete = []\r\n        for i,e in self.explosions.items():\r\n            e.tick()\r\n            if e.expired():\r\n                todelete.append(i)\r\n                self.grid[e.x][e.y] = False\r\n        for i in todelete:\r\n            del self.explosions[i]\r\n\r\n    def update_bombs(self):\r\n        \"\"\"Updates explosions\"\"\"\r\n        todelete = []\r\n        ev = []\r\n        for i,b in self.bombs.items():\r\n            b.tick()\r\n            if b.expired():\r\n                todelete.append(i)\r\n                ev = ev + self.add_blast(b)\r\n        for i in todelete:\r\n            del self.bombs[i]\r\n        return ev\r\n\r\n    def update_monsters(self):\r\n        \"\"\"Update monster state\"\"\"\r\n        # Event list\r\n        ev = []\r\n        # Update all the monsters\r\n        nmonsters = {}\r\n        for i, mlist in self.monsters.items():\r\n            for m in mlist:\r\n                # Update position and check for events\r\n                ev2 = self.update_monster_move(m, False)\r\n                ev = ev + ev2\r\n                # Monster gets inserted in next step's list unless hit\r\n                if not (ev2 and ev2[0].tpe == Event.BOMB_HIT_MONSTER):\r\n                    # Update new index\r\n                    ni = self.index(m.x, m.y)\r\n                    np = nmonsters.get(ni, [])\r\n                    np.append(m)\r\n                    nmonsters[ni] = np\r\n        # Save new index\r\n        self.monsters = nmonsters\r\n        # Return events\r\n        return ev\r\n\r\n    def update_characters(self):\r\n        \"\"\"Update character state\"\"\"\r\n        # Event list\r\n        ev = []\r\n        # Update all the characters\r\n        ncharacters = {}\r\n        for i, clist in self.characters.items():\r\n            for c in clist:\r\n                # Attempt to place bomb\r\n                if c.maybe_place_bomb:\r\n                    c.maybe_place_bomb = False\r\n                    can_bomb = True\r\n                    # Make sure this character has not already placed another bomb\r\n                    for k,b in self.bombs.items():\r\n                        if b.owner == c:\r\n                            can_bomb = False\r\n                            break\r\n                    if can_bomb:\r\n                        self.add_bomb(c.x, c.y, c)\r\n                # Update position and check for events\r\n                ev2 = self.update_character_move(c, False)\r\n                ev = ev + ev2\r\n                # Character gets inserted in next step's list unless hit,\r\n                # escaped, or killed\r\n                if not (ev2 and ev2[0].tpe in [Event.BOMB_HIT_CHARACTER, Event.CHARACTER_FOUND_EXIT, Event.CHARACTER_KILLED_BY_MONSTER]):\r\n                    # Update new index\r\n                    ni = self.index(c.x, c.y)\r\n                    np = ncharacters.get(ni, [])\r\n                    np.append(c)\r\n                    ncharacters[ni] = np\r\n        # Save new index\r\n        self.characters = ncharacters\r\n        # Return events\r\n        return ev\r\n\r\n    def update_scores(self):\r\n        \"\"\"Updates scores and manages events\"\"\"\r\n        for e in self.events:\r\n            if e.tpe == Event.BOMB_HIT_WALL:\r\n                self.scores[e.character.name] = self.scores[e.character.name] + 10\r\n            elif e.tpe == Event.BOMB_HIT_MONSTER:\r\n                self.scores[e.character.name] = self.scores[e.character.name] + 50\r\n            elif e.tpe == Event.BOMB_HIT_CHARACTER:\r\n                if e.character != e.other:\r\n                    self.scores[e.character.name] = self.scores[e.character.name] + 100\r\n            elif e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:\r\n                self.remove_character(e.character)\r\n            elif e.tpe == Event.CHARACTER_FOUND_EXIT:\r\n                self.scores[e.character.name] = self.scores[e.character.name] + 2 * self.time\r\n        for k,clist in self.characters.items():\r\n            for c in clist:\r\n                self.scores[c.name] = self.scores[c.name] + 1\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/bomberman/world.py b/bomberman/world.py
+--- a/bomberman/world.py	(revision 03e572f5e041eed95aedca916011e76ec79361b7)
++++ b/bomberman/world.py	(date 1616019884604)
+@@ -87,40 +87,40 @@
+ 
+     def printit(self):
+         """Prints the current state of the world"""
+-        border = "+" + "-" * self.width() + "+\n"
+-        print("\nTIME LEFT: ", self.time)
+-        sys.stdout.write(border)
+-        for y in range(self.height()):
+-            sys.stdout.write("|")
+-            for x in range(self.width()):
+-                if self.characters_at(x,y):
+-                    for c in self.characters_at(x,y):
+-                        sys.stdout.write(Back.GREEN + c.avatar)
+-                elif self.monsters_at(x,y):
+-                    for m in self.monsters_at(x,y):
+-                        sys.stdout.write(Back.BLUE + m.avatar)
+-                elif self.exit_at(x,y):
+-                    sys.stdout.write(Back.YELLOW + "#")
+-                elif self.bomb_at(x,y):
+-                    sys.stdout.write(Back.MAGENTA + "@")
+-                elif self.explosion_at(x,y):
+-                    sys.stdout.write(Fore.RED + "*")
+-                elif self.wall_at(x,y):
+-                    sys.stdout.write(Back.WHITE + " ")
+-                else:
+-                    tile = False
+-                    for k,clist in self.characters.items():
+-                        for c in clist:
+-                            if c.tiles.get((x,y)):
+-                                sys.stdout.write(c.tiles[(x,y)] + ".")
+-                                tile = True
+-                                break
+-                    if not tile:
+-                        sys.stdout.write(" ")
+-                sys.stdout.write(Style.RESET_ALL)
+-            sys.stdout.write("|\n")
+-        sys.stdout.write(border)
+-        sys.stdout.flush()
++        # border = "+" + "-" * self.width() + "+\n"
++        # print("\nTIME LEFT: ", self.time)
++        # sys.stdout.write(border)
++        # for y in range(self.height()):
++        #     sys.stdout.write("|")
++        #     for x in range(self.width()):
++        #         if self.characters_at(x,y):
++        #             for c in self.characters_at(x,y):
++        #                 sys.stdout.write(Back.GREEN + c.avatar)
++        #         elif self.monsters_at(x,y):
++        #             for m in self.monsters_at(x,y):
++        #                 sys.stdout.write(Back.BLUE + m.avatar)
++        #         elif self.exit_at(x,y):
++        #             sys.stdout.write(Back.YELLOW + "#")
++        #         elif self.bomb_at(x,y):
++        #             sys.stdout.write(Back.MAGENTA + "@")
++        #         elif self.explosion_at(x,y):
++        #             sys.stdout.write(Fore.RED + "*")
++        #         elif self.wall_at(x,y):
++        #             sys.stdout.write(Back.WHITE + " ")
++        #         else:
++        #             tile = False
++        #             for k,clist in self.characters.items():
++        #                 for c in clist:
++        #                     if c.tiles.get((x,y)):
++        #                         sys.stdout.write(c.tiles[(x,y)] + ".")
++        #                         tile = True
++        #                         break
++        #             if not tile:
++        #                 sys.stdout.write(" ")
++        #         sys.stdout.write(Style.RESET_ALL)
++        #     sys.stdout.write("|\n")
++        # sys.stdout.write(border)
++        # sys.stdout.flush()
+         print("SCORES")
+         for c,s in self.scores.items():
+             print(c,s)
+Index: group03/scenario1/variant2.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>\r\n# This is necessary to find the main code\r\nimport sys\r\nsys.path.insert(0, '../../bomberman')\r\nsys.path.insert(1, '..')\r\n\r\n# Import necessary stuff\r\nimport random\r\nimport csv\r\nfrom game import Game\r\nfrom game import Train\r\nfrom monsters.stupid_monster import StupidMonster\r\n\r\n# TODO This is your code!\r\nsys.path.insert(0, '../../group03/qlearning')\r\nfrom qlearner import QAgent\r\n\r\nwith open('../qlearning/weights.csv') as csvfile:\r\n    rd = csv.reader(csvfile)\r\n    weights = {rows[0]:float(rows[1]) for rows in rd}\r\n\r\nwin = 0\r\n\r\nfor i in range(1):\r\n    # Create the game\r\n    random.seed(i) # TODO Change this if you want different random choices\r\n    g = Game.fromfile('map.txt')\r\n\r\n    g.add_monster(StupidMonster(\"stupid\", # name\r\n                                \"S\",      # avatar\r\n                                3, 9      # position\r\n    ))\r\n\r\n    # TODO Add your character\r\n    maboi = QAgent(\"me\", \"C\", 0, 0, weights)\r\n    g.add_character(maboi)\r\n\r\n    # Run!\r\n    g.go(1)\r\n    win += g.win\r\n\r\nprint(\"WIN RATE: \", win, \" OUT OF 100\")
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/scenario1/variant2.py b/group03/scenario1/variant2.py
+--- a/group03/scenario1/variant2.py	(revision 03e572f5e041eed95aedca916011e76ec79361b7)
++++ b/group03/scenario1/variant2.py	(date 1616018920180)
+@@ -23,8 +23,8 @@
+ 
+ for i in range(1):
+     # Create the game
+-    random.seed(i) # TODO Change this if you want different random choices
+-    g = Game.fromfile('map.txt')
++    #random.seed(i) # TODO Change this if you want different random choices
++    g = Train.fromfile('map.txt')
+ 
+     g.add_monster(StupidMonster("stupid", # name
+                                 "S",      # avatar
+@@ -36,7 +36,7 @@
+     g.add_character(maboi)
+ 
+     # Run!
+-    g.go(1)
++    g.train(1)
+     win += g.win
+ 
+ print("WIN RATE: ", win, " OUT OF 100")
+\ No newline at end of file
+Index: .idea/csv-plugin.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"CsvFileAttributes\">\r\n    <option name=\"attributeMap\">\r\n      <map>\r\n        <entry key=\"\\group03\\qlearning\\qlearner.py\">\r\n          <value>\r\n            <Attribute>\r\n              <option name=\"separator\" value=\",\" />\r\n            </Attribute>\r\n          </value>\r\n        </entry>\r\n        <entry key=\"\\group03\\qlearning\\s1v2.csv\">\r\n          <value>\r\n            <Attribute>\r\n              <option name=\"separator\" value=\",\" />\r\n            </Attribute>\r\n          </value>\r\n        </entry>\r\n        <entry key=\"\\group03\\qlearning\\s2v2.csv\">\r\n          <value>\r\n            <Attribute>\r\n              <option name=\"separator\" value=\",\" />\r\n            </Attribute>\r\n          </value>\r\n        </entry>\r\n        <entry key=\"\\group03\\qlearning\\weights.csv\">\r\n          <value>\r\n            <Attribute>\r\n              <option name=\"separator\" value=\",\" />\r\n            </Attribute>\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/csv-plugin.xml b/.idea/csv-plugin.xml
+--- a/.idea/csv-plugin.xml	(revision 03e572f5e041eed95aedca916011e76ec79361b7)
++++ b/.idea/csv-plugin.xml	(date 1616018847657)
+@@ -3,6 +3,13 @@
+   <component name="CsvFileAttributes">
+     <option name="attributeMap">
+       <map>
++        <entry key="\group03\qlearning\qfunctions.py">
++          <value>
++            <Attribute>
++              <option name="separator" value="," />
++            </Attribute>
++          </value>
++        </entry>
+         <entry key="\group03\qlearning\qlearner.py">
+           <value>
+             <Attribute>
+@@ -18,6 +25,13 @@
+           </value>
+         </entry>
+         <entry key="\group03\qlearning\s2v2.csv">
++          <value>
++            <Attribute>
++              <option name="separator" value="," />
++            </Attribute>
++          </value>
++        </entry>
++        <entry key="\group03\qlearning\weights copy.csv">
+           <value>
+             <Attribute>
+               <option name="separator" value="," />
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"f057a2c5-4735-4657-a42d-c1a5e502c9a3\" name=\"Default Changelist\" comment=\"I think something is off with the features\">\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/bomberman/game.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/bomberman/game.py\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/bomberman/world.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/bomberman/world.py\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/group03/qlearning/qfunctions.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/group03/qlearning/qfunctions.py\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/group03/qlearning/qlearner.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/group03/qlearning/qlearner.py\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/group03/qlearning/weights.csv\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/group03/qlearning/weights.csv\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/group03/scenario1/variant2.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/group03/scenario1/variant2.py\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_BRANCH_BY_REPOSITORY\">\r\n      <map>\r\n        <entry key=\"$PROJECT_DIR$\" value=\"qlearning\" />\r\n      </map>\r\n    </option>\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"ProjectId\" id=\"1prSr1irQsbMJ64qKiwCPNUTVmg\" />\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\">\r\n    <property name=\"ASKED_SHARE_PROJECT_CONFIGURATION_FILES\" value=\"true\" />\r\n    <property name=\"RunOnceActivity.OpenProjectViewOnStart\" value=\"true\" />\r\n    <property name=\"RunOnceActivity.ShowReadmeOnStart\" value=\"true\" />\r\n    <property name=\"SHARE_PROJECT_CONFIGURATION_FILES\" value=\"true\" />\r\n    <property name=\"WebServerToolWindowFactoryState\" value=\"false\" />\r\n    <property name=\"last_opened_file_path\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"RunManager\">\r\n    <configuration name=\"Python3\" type=\"PythonConfigurationType\" factoryName=\"Python\" temporary=\"true\">\r\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\r\n      <option name=\"PARENT_ENVS\" value=\"true\" />\r\n      <envs>\r\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\r\n      </envs>\r\n      <option name=\"SDK_HOME\" value=\"C:\\Users\\gwyne\\AppData\\Local\\Programs\\Python\\Python39\\python.exe\" />\r\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/..\" />\r\n      <option name=\"IS_MODULE_SDK\" value=\"false\" />\r\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\r\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\r\n      <module name=\"\" />\r\n      <EXTENSION ID=\"PythonCoverageRunConfigurationExtension\" runner=\"coverage.py\" />\r\n      <option name=\"SCRIPT_NAME\" value=\"$PROJECT_DIR$\" />\r\n      <option name=\"PARAMETERS\" value=\"\" />\r\n      <option name=\"SHOW_COMMAND_LINE\" value=\"false\" />\r\n      <option name=\"EMULATE_TERMINAL\" value=\"false\" />\r\n      <option name=\"MODULE_MODE\" value=\"false\" />\r\n      <option name=\"REDIRECT_INPUT\" value=\"false\" />\r\n      <option name=\"INPUT_FILE\" value=\"\" />\r\n      <method v=\"2\" />\r\n    </configuration>\r\n    <recent_temporary>\r\n      <list>\r\n        <item itemvalue=\"Python.Python3\" />\r\n      </list>\r\n    </recent_temporary>\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"f057a2c5-4735-4657-a42d-c1a5e502c9a3\" name=\"Default Changelist\" comment=\"\" />\r\n      <created>1615939913249</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1615939913249</updated>\r\n      <workItem from=\"1615939916035\" duration=\"2870000\" />\r\n      <workItem from=\"1615951269536\" duration=\"183000\" />\r\n      <workItem from=\"1615951456701\" duration=\"299000\" />\r\n    </task>\r\n    <task id=\"LOCAL-00001\" summary=\"I think something is off with the features\">\r\n      <created>1615958798901</created>\r\n      <option name=\"number\" value=\"00001\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1615958798901</updated>\r\n    </task>\r\n    <option name=\"localTasksCounter\" value=\"2\" />\r\n    <servers />\r\n  </component>\r\n  <component name=\"TypeScriptGeneratedFilesManager\">\r\n    <option name=\"version\" value=\"3\" />\r\n  </component>\r\n  <component name=\"Vcs.Log.Tabs.Properties\">\r\n    <option name=\"TAB_STATES\">\r\n      <map>\r\n        <entry key=\"MAIN\">\r\n          <value>\r\n            <State />\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n    <option name=\"oldMeFiltersMigrated\" value=\"true\" />\r\n  </component>\r\n  <component name=\"VcsManagerConfiguration\">\r\n    <MESSAGE value=\"I think something is off with the features\" />\r\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"I think something is off with the features\" />\r\n  </component>\r\n  <component name=\"com.intellij.coverage.CoverageDataManagerImpl\">\r\n    <SUITE FILE_PATH=\"coverage/CS4341Bomberman$Python3.coverage\" NAME=\"Python3 Coverage Results\" MODIFIED=\"1615952380794\" SOURCE_PROVIDER=\"com.intellij.coverage.DefaultCoverageFileProvider\" RUNNER=\"coverage.py\" COVERAGE_BY_TEST_ENABLED=\"true\" COVERAGE_TRACING_ENABLED=\"false\" WORKING_DIRECTORY=\"$PROJECT_DIR$/..\" />\r\n    <SUITE FILE_PATH=\"coverage/CS4341Bomberman$tournament1.coverage\" NAME=\"tournament1 Coverage Results\" MODIFIED=\"1615941591498\" SOURCE_PROVIDER=\"com.intellij.coverage.DefaultCoverageFileProvider\" RUNNER=\"coverage.py\" COVERAGE_BY_TEST_ENABLED=\"true\" COVERAGE_TRACING_ENABLED=\"false\" WORKING_DIRECTORY=\"$PROJECT_DIR$/group03/scenario1\" />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 03e572f5e041eed95aedca916011e76ec79361b7)
++++ b/.idea/workspace.xml	(date 1616019933440)
+@@ -1,7 +1,8 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+   <component name="ChangeListManager">
+-    <list default="true" id="f057a2c5-4735-4657-a42d-c1a5e502c9a3" name="Default Changelist" comment="I think something is off with the features">
++    <list default="true" id="f057a2c5-4735-4657-a42d-c1a5e502c9a3" name="Default Changelist" comment="Debugging qlearner">
++      <change beforePath="$PROJECT_DIR$/.idea/csv-plugin.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/csv-plugin.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/bomberman/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/bomberman/game.py" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/bomberman/world.py" beforeDir="false" afterPath="$PROJECT_DIR$/bomberman/world.py" afterDir="false" />
+@@ -84,7 +85,14 @@
+       <option name="project" value="LOCAL" />
+       <updated>1615958798901</updated>
+     </task>
+-    <option name="localTasksCounter" value="2" />
++    <task id="LOCAL-00002" summary="Debugging qlearner">
++      <created>1616014988219</created>
++      <option name="number" value="00002" />
++      <option name="presentableId" value="LOCAL-00002" />
++      <option name="project" value="LOCAL" />
++      <updated>1616014988219</updated>
++    </task>
++    <option name="localTasksCounter" value="3" />
+     <servers />
+   </component>
+   <component name="TypeScriptGeneratedFilesManager">
+@@ -104,7 +112,8 @@
+   </component>
+   <component name="VcsManagerConfiguration">
+     <MESSAGE value="I think something is off with the features" />
+-    <option name="LAST_COMMIT_MESSAGE" value="I think something is off with the features" />
++    <MESSAGE value="Debugging qlearner" />
++    <option name="LAST_COMMIT_MESSAGE" value="Debugging qlearner" />
+   </component>
+   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+     <SUITE FILE_PATH="coverage/CS4341Bomberman$Python3.coverage" NAME="Python3 Coverage Results" MODIFIED="1615952380794" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/.." />
