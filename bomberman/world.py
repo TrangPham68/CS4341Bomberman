@@ -28,6 +28,8 @@ class World:
         self.scores = {}
         # Events
         self.events = []
+        # To delete
+        self.win = 0
 
     @classmethod
     def from_params(cls, width, height, max_time, bomb_time, expl_duration, expl_range):
@@ -388,6 +390,7 @@ class World:
             elif e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
                 self.remove_character(e.character)
             elif e.tpe == Event.CHARACTER_FOUND_EXIT:
+                self.win = 1
                 self.scores[e.character.name] = self.scores[e.character.name] + 2 * self.time
         for k,clist in self.characters.items():
             for c in clist:

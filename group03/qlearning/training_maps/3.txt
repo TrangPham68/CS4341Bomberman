@@ -6,14 +6,15 @@ expl_range 4
 |        |
 |        |
 |        |
+|WWWW    |
 |        |
 |        |
-|        |
-|WWWWWWWW|
-|        |
+|WWWW    |
 |        |
 |        |
-|    WWWW|
+|   WWWW |
+|        |
+|W       |
 |        |
 |       E|
 +--------+
