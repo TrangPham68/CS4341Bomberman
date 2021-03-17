@@ -30,7 +30,7 @@ def distance_to_exit(wrld, x, y):
     path = astar((x,y), exit_loc, wrld)
     length = len(path) 
 
-    return (1.0/(length + 1)) ** 0.1
+    return 1.0 / (length + 1)
 
 def bomb_radius(wrld, x, y):
     """Find distance from character to closest bomb, normalized"""

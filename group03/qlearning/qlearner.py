@@ -18,9 +18,9 @@ from actions import Actions, Pos
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.2
+        self.learning_rate = 0.3
         self.discount_factor = 0.8
-        self.epsilon = 0.2
+        self.epsilon = 0.25
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
@@ -179,15 +179,15 @@ class QAgent(CharacterEntity):
         """
         r = 0
         if wrld.exit_at(x,y):
-            r += 150
+            r = 150
         elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
-            r -= 50
+            r = 50
         elif len(wrld.events) > 0:
             for e in wrld.events:
                 if e.tpe == Event.BOMB_HIT_MONSTER:
-                    r += 20
+                    r = 20
                 elif e.tpe == Event.BOMB_HIT_WALL and wrld.me(self) is not None:
-                    r += 20
+                    r = 20
         else:
             r = 1
         return r
