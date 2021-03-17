@@ -18,34 +18,47 @@ from actions import Actions, Pos
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.1
-        self.discount_factor = 0.8
+        self.learning_rate = 0.01
+        self.discount_factor = 0.7
         self.epsilon = 0.25
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
         self.current_pos = (0,0)
         self.last_pos = (0,0)
+        self.last_c = None
         self.win = 0
 
     def do(self, wrld):
         # Find character
         c = wrld.me(self)
-        if self.last_q:
-            self.update_weights(wrld, c)
+        print('\n')
+        print("STARTING")
+        print(c.x, c.y)
+        print("___________________________________________________________________________")
+        print('\n')
 
+        if self.last_q:
+            last_action = self.current_action
+            last_action = (-last_action[0], -last_action[1])
+            self.update_weights(wrld, last_action, self.last_c)
+
+        print("Weights Updated")
         action = self.get_action(wrld, c.x, c.y)
         move = Pos[action].value
 
         self.current_action = move
         self.last_q = self.q_value(wrld, self.current_action, c.x, c.y)
         self.last_pos = (c.x, c.y)
+        self.last_c = c
         self.current_pos = (c.x + move[0], c.y + move[1])
 
         # Place bomb if bomb action is selected
         if action == "BOMB":
             self.place_bomb()
-
+        print('\n')
+        print('PICKED')
+        print(c.x + move[0], c.y + move[1])
         self.move(move[0], move[1])
 
 
@@ -79,11 +92,14 @@ class QAgent(CharacterEntity):
 
     def q_value(self, wrld, action, x, y):
         """Finds the qvalue of a state-action pair"""
+        print("X:", x + action[0]," Y:", y + action[1])
         q = 0 
         fvec = self.extract_features(wrld, x + action[0], y + action[1]) 
         #print("FVEC: ", fvec)
-        for f in fvec: 
+        for f in fvec:
+            print(f, self.weights[f], fvec[f])
             q += self.weights[f] * fvec[f] 
+        print(q)
         return q
 
     def get_best_action(self,wrld,x,y):
@@ -99,7 +115,8 @@ class QAgent(CharacterEntity):
         
         #Iterate through possible character moves
         legal_a = self.get_legal_actions(wrld,(x,y))
-        
+        print(legal_a)
+
         for action in legal_a:
             # If character is still alive
             if wrld.me(self):
@@ -109,6 +126,7 @@ class QAgent(CharacterEntity):
                     wrld.me(self).place_bomb()
                 # Move character
                 wrld.me(self).move(a[0], a[1])
+                print(a[0], a[1])
 
                 # If there is a monster
                 if m:
@@ -127,6 +145,7 @@ class QAgent(CharacterEntity):
                     m.move(m_best_step[0], m_best_step[1])
                     # Go to next state
                     next_state, events = wrld.next()
+                    next_state.printit()
                     # Find optimal character move assuming monster makes best move for self
                     q = self.q_value(next_state, a, x, y)
                     q_table[action] = q
@@ -147,6 +166,7 @@ class QAgent(CharacterEntity):
         legal_a = self.get_legal_actions(wrld, (x,y))
         # Generate random number
         r = random.random()
+
         if len(legal_a) > 0:
             if (r < self.epsilon):
                 new_action = random.choice(legal_a)
@@ -201,21 +221,14 @@ class QAgent(CharacterEntity):
 
         return q
         
-    def update_weights(self, current_state, c):
+    def update_weights(self, current_state, current_action, c):
         """Update the weights for Q(s,a)"""
         print("\n===========================")
         # print("UPDATING WEIGHTS:")
-        current_action = self.current_action
         print("Current action: ", current_action)
         reward = self.calc_rewards(current_state, c.x, c.y)
-        print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))
+        #print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))
         current_utility = self.q_value(current_state, current_action, c.x, c.y)
-
-        fvec = self.extract_features(current_state, c.x + current_action[0], c.y + current_action[1])
-        for f in fvec:
-            print(self.weights[f])
-            print(fvec[f])
-            print(f, self.weights[f] * fvec[f])
 
         # Get best action in next state
         q = self.next_best_state(current_state, c.x, c.y, current_action)
@@ -227,5 +240,5 @@ class QAgent(CharacterEntity):
         
         # w = w + alpha * delta * f(s,a)
         fvec = self.extract_features(current_state, c.x, c.y)
-        for f in fvec: 
+        for f in fvec:
             self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]

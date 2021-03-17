@@ -1,5 +1,5 @@
-dist_to_monsters,-7
-dist_to_exit,5
-bomb_range,3
-blast,5
-blocked,2
+dist_to_monsters,-50
+dist_to_exit,50
+bomb_range,-30
+blast,-300
+blocked,-75

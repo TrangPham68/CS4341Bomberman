@@ -70,9 +70,8 @@ def if_expl(wrld, x, y):
                 if (y + dy >= 0) and (y + dy < wrld.height()):
                     for i in range(-1, 1):
                         for j in range(-1,1):
-                            if wrld.explosion_at(x + dx + i, y + dy + j):
+                            if wrld.explosion_at(x + dx + i, y + dy + j) or wrld.bomb_at(x + dx + i, y + dy + j):
                                 return 1.0
-
     return 0
 
 def if_blocked(wrld, x, y):

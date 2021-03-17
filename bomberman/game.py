@@ -172,5 +172,5 @@ class Train(Game):
             self.display_gui()
             # step()
             self.world.next_decisions()
-        self.draw()
+            self.draw()
         # colorama.deinit()
