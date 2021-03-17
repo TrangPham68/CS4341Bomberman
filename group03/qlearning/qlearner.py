@@ -18,7 +18,7 @@ from actions import Actions, Pos
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.3
+        self.learning_rate = 0.1
         self.discount_factor = 0.8
         self.epsilon = 0.25
         self.weights = weights
@@ -81,7 +81,7 @@ class QAgent(CharacterEntity):
         """Finds the qvalue of a state-action pair"""
         q = 0 
         fvec = self.extract_features(wrld, x + action[0], y + action[1]) 
-        # print("FVEC: ", fvec)
+        #print("FVEC: ", fvec)
         for f in fvec: 
             q += self.weights[f] * fvec[f] 
         return q
@@ -203,18 +203,24 @@ class QAgent(CharacterEntity):
         
     def update_weights(self, current_state, c):
         """Update the weights for Q(s,a)"""
-        # print("\n===========================")
+        print("\n===========================")
         # print("UPDATING WEIGHTS:")
         current_action = self.current_action
-        # print("Current action: ", current_action)
+        print("Current action: ", current_action)
         reward = self.calc_rewards(current_state, c.x, c.y)
-        # print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))
+        print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))
         current_utility = self.q_value(current_state, current_action, c.x, c.y)
+
+        fvec = self.extract_features(current_state, c.x + current_action[0], c.y + current_action[1])
+        for f in fvec:
+            print(self.weights[f])
+            print(fvec[f])
+            print(f, self.weights[f] * fvec[f])
 
         # Get best action in next state
         q = self.next_best_state(current_state, c.x, c.y, current_action)
-       
-        # print("Reward;", reward, "Current utility:", current_utility)
+
+        #print("Reward:", reward, "Current utility:", current_utility)
 
         # delta = reward + v(max(a')(Q(s',a'))) - Q(s,a)
         delta = (reward + (self.discount_factor * q)) - current_utility

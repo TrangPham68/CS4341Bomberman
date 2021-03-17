@@ -1,1 +1,5 @@
-dist_to_monsters,-8.944871823640147dist_to_exit,11.758624053869298bomb_range,-1.7163908491840205blast,-1.9559291000589347blocked,23.32079984461265
+dist_to_monsters,-7
+dist_to_exit,5
+bomb_range,3
+blast,5
+blocked,2

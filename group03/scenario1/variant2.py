@@ -8,6 +8,7 @@ sys.path.insert(1, '..')
 import random
 import csv
 from game import Game
+from game import Train
 from monsters.stupid_monster import StupidMonster
 
 # TODO This is your code!
@@ -20,10 +21,10 @@ with open('../qlearning/weights.csv') as csvfile:
 
 win = 0
 
-for i in range(100):
+for i in range(1):
     # Create the game
     random.seed(i) # TODO Change this if you want different random choices
-    g = Game.fromfile('map.txt')
+    g = Train.fromfile('map.txt')
 
     g.add_monster(StupidMonster("stupid", # name
                                 "S",      # avatar
