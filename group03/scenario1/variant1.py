@@ -1,8 +1,14 @@
 
 # This is necessary to find the main code
+import csv
 import sys
+
+from game import Game
+
 sys.path.insert(0, '../../bomberman')
 sys.path.insert(1, '..')
+
+import random
 
 # TODO This is your code!
 sys.path.insert(0, '../../group03/qlearning')
