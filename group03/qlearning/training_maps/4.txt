@@ -5,13 +5,13 @@ expl_range 4
 +--------+
 |        |
 |        |
-|WWWW    |
-|    WW  |
+|    WWWW|
 |        |
 |        |
-|   WWWWW|
-|   W    |
-|   W    |
+|WWWWWW  |
+|        |
+|        |
+|        |
 |WWWW    |
 |        |
 |        |

@@ -4,12 +4,6 @@ import sys
 sys.path.insert(0, '../../bomberman')
 sys.path.insert(1, '..')
 
-# Import necessary stuff
-import random
-import csv
-from game import Game, Train
-from monsters.selfpreserving_monster import SelfPreservingMonster
-
 # TODO This is your code!
 sys.path.insert(0, '../../group03/qlearning')
 from qlearner import QAgent
