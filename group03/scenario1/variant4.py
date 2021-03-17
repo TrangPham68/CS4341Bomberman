@@ -18,12 +18,11 @@ with open('../qlearning/weights.csv') as csvfile:
     weights = {rows[0]:float(rows[1]) for rows in rd}
 
 win = 0
-
 for i in range(100):
     # Create the game
     random.seed(i) # TODO Change this if you want different random choices
-    t = Train.fromfile('map.txt')
-    t.add_monster(SelfPreservingMonster("aggressive", # name
+    g = Game.fromfile('map.txt')
+    g.add_monster(SelfPreservingMonster("aggressive", # name
                                         "A",          # avatar
                                         3, 13,        # position
                                         2             # detection range
@@ -31,10 +30,11 @@ for i in range(100):
 
     # TODO Add your character
     maboi = QAgent("me", "C", 0, 0, weights)
-    t.add_character(maboi)
+    g.add_character(maboi)
 
     # Run!
-    t.train(1)
-    win += t.win
+    g.go(1)
+    if g.done() and g.world.scores["me"] > 0:
+        win += 1
 
-print("WIN RATE: ", win, " OUT OF 100")
+print("WIN RATE: ", win, " OUT OF", i+1)

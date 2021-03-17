@@ -45,9 +45,8 @@ for variant in range (5):
 		maboi = QAgent("me", "C", 0, 0, weights)
 		g.add_character(maboi)
 		g.go(1)
-		if g.done():
-			if maboi.win == 1:
-				win += 1
+		if g.done() and g.world.scores["me"] > 0:
+			win += 1
 	winRate.append((variant, win))
 
 print(winRate)

@@ -17,30 +17,31 @@ sys.path.insert(1, '../groupNN')
 #from testcharacter import TestCharacter
 
 # Create the game
-random.seed(123) # TODO Change this if you want different random choices
-g = Game.fromfile('map.txt')
+
+
 with open('../qlearning/weights.csv') as csvfile:
     rd = csv.reader(csvfile)
     weights = {rows[0]: float(rows[1]) for rows in rd}
 
-g.add_monster(StupidMonster("stupid", # name
-                            "S",      # avatar
-                            3, 5,     # position
-))
-g.add_monster(SelfPreservingMonster("aggressive", # name
-                                    "A",          # avatar
-                                    3, 13,        # position
-                                    2             # detection range
-))
+win =0
+for i in range(5):
+    random.seed(123)  # TODO Change this if you want different random choices
+    g = Game.fromfile('map.txt')
+    g.add_monster(StupidMonster("stupid", # name
+                                "S",      # avatar
+                                 3, 5,     # position
+    ))
+    g.add_monster(SelfPreservingMonster("aggressive", # name
+                                        "A",          # avatar
+                                         3, 13,        # position
+                                        2             # detection range
+    ))
 
-maboi = QAgent("me", "C", 0, 0, weights)
-g.add_character(maboi)
-g.go(1)
-# TODO Add your character
-# g.add_character(TestCharacter("me", # name
-#                               "C",  # avatar
-#                               0, 0  # position
-# ))
+    maboi = QAgent("me", "C", 0, 0, weights)
+    g.add_character(maboi)
+    # Run!
+    g.go(1)
+    if g.done() and g.world.scores["me"] > 0:
+        win += 1
 
-# Run!
-# g.go()
+print("WIN RATE: ", win, " OUT OF", i + 1)

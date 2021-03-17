@@ -20,9 +20,9 @@ with open('../qlearning/weights.csv') as csvfile:
 
 win = 0
 
-for i in range(100):
+for i in range(5):
     # Create the game
-    random.seed(i) # TODO Change this if you want different random choices
+    random.seed(180) # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
 
     g.add_monster(StupidMonster("stupid", # name
@@ -36,6 +36,7 @@ for i in range(100):
 
     # Run!
     g.go(1)
-    win += g.win
+    if g.done() and g.world.scores["me"] > 0:
+        win += 1
 
-print("WIN RATE: ", win, " OUT OF 100")
+print("WIN RATE: ", win, " OUT OF", i+1)

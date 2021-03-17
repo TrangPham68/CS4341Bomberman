@@ -26,18 +26,23 @@ class QAgent(CharacterEntity):
         self.current_action = (0,0)
         self.current_pos = (0,0)
         self.last_pos = (0,0)
-        self.win = 0
 
     def do(self, wrld):
         # Find character
         c = wrld.me(self)
-        if (qf.find_exit(wrld) == (self.x, self.y)):
-            self.win = 1
 
         if self.last_q:
             self.update_weights(wrld, c)
 
-        action = self.get_action(wrld, c.x, c.y)
+        #check if astar would be optimal instead
+        astarAct = self.get_astar_action(wrld, c.x, c.y)
+        if astarAct:
+            action = astarAct
+
+        #else try to get best move based on q_value
+        else:
+            action = self.get_action(wrld, c.x, c.y)
+
         move = Pos[action].value
 
         self.current_action = move
@@ -133,6 +138,7 @@ class QAgent(CharacterEntity):
                     # Find optimal character move assuming monster makes best move for self
                     q = self.q_value(next_state, a, x, y)
                     q_table[action] = q
+
         
         qtable = list(q_table.values())
         if len(qtable) > 0:
@@ -155,7 +161,20 @@ class QAgent(CharacterEntity):
                 new_action = random.choice(legal_a)
             else:
                 new_action = self.get_best_action(wrld, x, y)[0]
-        return new_action 
+        return new_action
+
+    def get_astar_action(self, wrld, x, y):
+        """Get the next action on the astar path if there is an exit that is not blocked and no monster"""
+
+        exit = qf.find_exit(wrld)
+        action = "STAY"
+        if exit:
+            path = qf.astar((x,y), exit, wrld)
+            if len(path) > 1 and not qf.find_closest_monster(wrld, x, y):
+                action = Pos((path[1][0] - x, path[1][1] - y)).name
+                return action
+        return None
+
     
     def eval_state(self, wrld, curr_pos):
         # If no events,  evaluate state based on ratio between distance to monster and exit
@@ -217,12 +236,14 @@ class QAgent(CharacterEntity):
         # Get best action in next state
         q = self.next_best_state(current_state, c.x, c.y, current_action)
        
-        # print("Reward;", reward, "Current utility:", current_utility)
+        #print("Reward;", reward, "Current utility:", current_utility)
 
         # delta = reward + v(max(a')(Q(s',a'))) - Q(s,a)
         delta = (reward + (self.discount_factor * q)) - current_utility
         
         # w = w + alpha * delta * f(s,a)
         fvec = self.extract_features(current_state, c.x, c.y)
+        #print("fval")
+        print(fvec)
         for f in fvec: 
             self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]

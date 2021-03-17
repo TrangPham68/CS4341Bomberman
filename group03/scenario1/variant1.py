@@ -1,12 +1,15 @@
 
 # This is necessary to find the main code
 import sys
+import csv
+import random
 sys.path.insert(0, '../../bomberman')
 sys.path.insert(1, '..')
 
 # TODO This is your code!
 sys.path.insert(0, '../../group03/qlearning')
 from qlearner import QAgent
+from game import Game
 
 with open('../qlearning/weights.csv') as csvfile:
     rd = csv.reader(csvfile)
@@ -14,7 +17,7 @@ with open('../qlearning/weights.csv') as csvfile:
 
 win = 0
 
-for i in range(100):
+for i in range(5):
     # Create the game
     random.seed(i) # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
@@ -25,6 +28,7 @@ for i in range(100):
 
     # Run!
     g.go(1)
-    win += g.win
+    if g.done() and g.world.scores["me"] > 0:
+        win += 1
 
-print("WIN RATE: ", win, " OUT OF 100")
+print("WIN RATE: ", win, " OUT OF", i+1)
