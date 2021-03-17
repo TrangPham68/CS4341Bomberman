@@ -1,0 +1,267 @@
+Index: group03/qlearning/weights.csv
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>dist_to_monsters,-4.503743781074403\r\ndist_to_exit,-8.741105250443864\r\nbomb_range,-4.76122274607601\r\nblast,-17.426763785043285\r\nblocked,10.487183390493142\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/qlearning/weights.csv b/group03/qlearning/weights.csv
+--- a/group03/qlearning/weights.csv	(revision d1a23f61a0b7a6476ceeb825cba5c38d4ab03cfa)
++++ b/group03/qlearning/weights.csv	(date 1615941561580)
+@@ -1,5 +1,5 @@
+-dist_to_monsters,-4.503743781074403
+-dist_to_exit,-8.741105250443864
+-bomb_range,-4.76122274607601
+-blast,-17.426763785043285
+-blocked,10.487183390493142
++dist_to_monsters,7.158269085365786
++dist_to_exit,-21.68432208522743
++bomb_range,-1.397398300254597
++blast,-18.91458976256809
++blocked,-0.6964213326460915
+Index: group03/scenario2/map.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>max_time 5000\r\nbomb_time 10\r\nexpl_duration 2\r\nexpl_range 4\r\n+--------+\r\n|        |\r\n|        |\r\n|        |\r\n|WWWWWWWW|\r\n|        |\r\n|        |\r\n|        |\r\n|WWWWWWWW|\r\n|        |\r\n|        |\r\n|        |\r\n|WWWWWWWW|\r\n|        |\r\n|        |\r\n|        |\r\n|WWWWWWWW|\r\n|        |\r\n|        |\r\n|       E|\r\n+--------+\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/scenario2/map.txt b/group03/scenario2/map.txt
+--- a/group03/scenario2/map.txt	(revision d1a23f61a0b7a6476ceeb825cba5c38d4ab03cfa)
++++ b/group03/scenario2/map.txt	(date 1615941464637)
+@@ -21,5 +21,5 @@
+ |WWWWWWWW|
+ |        |
+ |        |
+-|       E|
++|        |
+ +--------+
+Index: group03/qlearning/train.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># This is necessary to find the main code\r\nimport sys\r\nsys.path.insert(0, '../../bomberman')\r\nsys.path.insert(1, '..')\r\n\r\n# Import necessary stuff\r\nimport random\r\nimport csv\r\nfrom game import Train, Game\r\nfrom monsters.selfpreserving_monster import SelfPreservingMonster\r\n\r\n# TODO This is your code!\r\nsys.path.insert(1, '../group03/qlearning')\r\nfrom qlearner import QAgent\r\n\r\nmaps = ['training_maps/1.txt','training_maps/2.txt','training_maps/3.txt','training_maps/4.txt','training_maps/5.txt']\r\n\r\nfor i in range(5):\r\n    for j in range(5):\r\n        for k in range(100):\r\n            # Create the game\r\n            with open('weights.csv') as csvfile:\r\n                rd = csv.reader(csvfile)\r\n                weights = {rows[0]:float(rows[1]) for rows in rd}\r\n\r\n            t = Train.fromfile(maps[j])\r\n            t.add_monster(SelfPreservingMonster(\"aggressive\", # name\r\n                                                \"A\",          # avatar\r\n                                                4, 7,        # position\r\n                                                2             # detection range\r\n            ))\r\n\r\n            # TODO Add your character\r\n            maboi = QAgent(\"me\", \"C\", 0, 0, weights)\r\n            t.add_character(maboi)\r\n\r\n            # Run!\r\n            t.train(1)\r\n            # t.train(1)\r\n            with open('weights.csv', 'w') as csvfile:\r\n                w = csv.writer(csvfile, lineterminator='\\n')\r\n                for k, v in maboi.weights.items():\r\n                    w.writerow([k,v])
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/qlearning/train.py b/group03/qlearning/train.py
+--- a/group03/qlearning/train.py	(revision d1a23f61a0b7a6476ceeb825cba5c38d4ab03cfa)
++++ b/group03/qlearning/train.py	(date 1615941464624)
+@@ -8,27 +8,42 @@
+ import csv
+ from game import Train, Game
+ from monsters.selfpreserving_monster import SelfPreservingMonster
++from monsters.stupid_monster import StupidMonster
+ 
+ # TODO This is your code!
+ sys.path.insert(1, '../group03/qlearning')
+ from qlearner import QAgent
+ 
+ maps = ['training_maps/1.txt','training_maps/2.txt','training_maps/3.txt','training_maps/4.txt','training_maps/5.txt']
++variant = 4
+ 
+ for i in range(5):
+     for j in range(5):
+         for k in range(100):
++            random.seed(i)
+             # Create the game
+             with open('weights.csv') as csvfile:
+                 rd = csv.reader(csvfile)
+                 weights = {rows[0]:float(rows[1]) for rows in rd}
+ 
+             t = Train.fromfile(maps[j])
+-            t.add_monster(SelfPreservingMonster("aggressive", # name
+-                                                "A",          # avatar
+-                                                4, 7,        # position
+-                                                2             # detection range
+-            ))
++
++            if variant == 1 or variant == 4:
++                t.add_monster(StupidMonster("stupid",  # name
++                                            "S",  # avatar
++                                            3, 5  # position
++                                            ))
++            if variant == 2:
++                t.add_monster(StupidMonster("stupid",  # name
++                                            "S",  # avatar
++                                            3, 9  # position
++                                            ))
++            if variant == 3 or variant == 4:
++                t.add_monster(SelfPreservingMonster("aggressive",  # name
++                                                    "A",  # avatar
++                                                    3, 13,  # position
++                                                    2  # detection range
++                                                    ))
+ 
+             # TODO Add your character
+             maboi = QAgent("me", "C", 0, 0, weights)
+Index: group03/scenario1/tournament1.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># This is necessary to find the main code\r\nimport sys\r\nsys.path.insert(0, '../../bomberman')\r\nsys.path.insert(1, '..')\r\n\r\n# Import necessary stuff\r\nfrom game import Game\r\nimport random\r\nimport csv\r\nfrom monsters.selfpreserving_monster import SelfPreservingMonster\r\nfrom monsters.stupid_monster import StupidMonster\r\nsys.path.insert(1, '../../group03/qlearning')\r\nfrom qlearner import QAgent\r\n\r\n\r\n# TODO This is your code!\r\n\r\n# Create the game\r\nwinRate = []\r\nfor variant in range (5):\r\n\twin = 0;\r\n\tfor trial in range (1):\r\n\t\trandom.seed(123)\r\n\t\twith open('../qlearning/weights.csv') as csvfile:\r\n\t\t\trd = csv.reader(csvfile)\r\n\t\t\tweights = {rows[0]: float(rows[1]) for rows in rd}\r\n\r\n\t\tg = Game.fromfile('map.txt')\r\n\t\tif variant == 1 or variant == 4:\r\n\t\t\tg.add_monster(StupidMonster(\"stupid\",  # name\r\n\t\t\t                            \"S\",  # avatar\r\n\t\t\t                            3, 5  # position\r\n\t\t\t                            ))\r\n\t\tif variant == 2:\r\n\t\t\tg.add_monster(StupidMonster(\"stupid\",  # name\r\n\t\t\t                            \"S\",  # avatar\r\n\t\t\t                            3, 9  # position\r\n\t\t\t                            ))\r\n\t\tif variant == 3 or variant == 4:\r\n\t\t\tg.add_monster(SelfPreservingMonster(\"aggressive\",  # name\r\n\t\t\t                                    \"A\",  # avatar\r\n\t\t\t                                    3, 13,  # position\r\n\t\t\t                                    2  # detection range\r\n\t\t\t                                    ))\r\n\t\tmaboi = QAgent(\"me\", \"C\", 0, 0, weights)\r\n\t\tg.add_character(maboi)\r\n\t\tg.go(1)\r\n\t\tif g.done():\r\n\t\t\tif maboi.win == 1:\r\n\t\t\t\twin += 1\r\n\twinRate.append((variant, win))\r\n\r\nprint(winRate)\r\n\r\n\r\n\r\n# # TODO Add your character\r\n# g.add_character(TestCharacter(\"me\", # name\r\n#                               \"C\",  # avatar\r\n#                               0, 0  # position\r\n# ))\r\n\r\n# Run!\r\n# g.go(1)\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/scenario1/tournament1.py b/group03/scenario1/tournament1.py
+--- a/group03/scenario1/tournament1.py	(revision d1a23f61a0b7a6476ceeb825cba5c38d4ab03cfa)
++++ b/group03/scenario1/tournament1.py	(date 1615941653340)
+@@ -19,8 +19,8 @@
+ winRate = []
+ for variant in range (5):
+ 	win = 0;
+-	for trial in range (1):
+-		random.seed(123)
++	for trial in range (50):
++		random.seed(trial)
+ 		with open('../qlearning/weights.csv') as csvfile:
+ 			rd = csv.reader(csvfile)
+ 			weights = {rows[0]: float(rows[1]) for rows in rd}
+Index: .idea/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+new file mode 100644
+--- /dev/null	(date 1615939931482)
++++ b/.idea/.gitignore	(date 1615939931482)
+@@ -0,0 +1,8 @@
++# Default ignored files
++/shelf/
++/workspace.xml
++# Datasource local storage ignored files
++/../../../../../../:\Users\gwyne\PycharmProjects\CS4341Bomberman\.idea/dataSources/
++/dataSources.local.xml
++# Editor-based HTTP Client requests
++/httpRequests/
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+new file mode 100644
+--- /dev/null	(date 1615939965507)
++++ b/.idea/misc.xml	(date 1615939965507)
+@@ -0,0 +1,4 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9" project-jdk-type="Python SDK" />
++</project>
+\ No newline at end of file
+Index: .idea/csv-plugin.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/csv-plugin.xml b/.idea/csv-plugin.xml
+new file mode 100644
+--- /dev/null	(date 1615941171003)
++++ b/.idea/csv-plugin.xml	(date 1615941171003)
+@@ -0,0 +1,30 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="CsvFileAttributes">
++    <option name="attributeMap">
++      <map>
++        <entry key="\group03\qlearning\train.py">
++          <value>
++            <Attribute>
++              <option name="separator" value="," />
++            </Attribute>
++          </value>
++        </entry>
++        <entry key="\group03\qlearning\weights copy.csv">
++          <value>
++            <Attribute>
++              <option name="separator" value="," />
++            </Attribute>
++          </value>
++        </entry>
++        <entry key="\group03\qlearning\weights.csv">
++          <value>
++            <Attribute>
++              <option name="separator" value="," />
++            </Attribute>
++          </value>
++        </entry>
++      </map>
++    </option>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/CS4341Bomberman.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/CS4341Bomberman.iml b/.idea/CS4341Bomberman.iml
+new file mode 100644
+--- /dev/null	(date 1615939965470)
++++ b/.idea/CS4341Bomberman.iml	(date 1615939965470)
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="PYTHON_MODULE" version="4">
++  <component name="NewModuleRootManager">
++    <content url="file://$MODULE_DIR$" />
++    <orderEntry type="inheritedJdk" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++  <component name="PyDocumentationSettings">
++    <option name="format" value="PLAIN" />
++    <option name="myDocStringFormat" value="Plain" />
++  </component>
++</module>
+\ No newline at end of file
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+new file mode 100644
+--- /dev/null	(date 1615939916265)
++++ b/.idea/modules.xml	(date 1615939916265)
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectModuleManager">
++    <modules>
++      <module fileurl="file://$PROJECT_DIR$/.idea/CS4341Bomberman.iml" filepath="$PROJECT_DIR$/.idea/CS4341Bomberman.iml" />
++    </modules>
++  </component>
++</project>
+\ No newline at end of file
+Index: .idea/inspectionProfiles/profiles_settings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/inspectionProfiles/profiles_settings.xml b/.idea/inspectionProfiles/profiles_settings.xml
+new file mode 100644
+--- /dev/null	(date 1615939916288)
++++ b/.idea/inspectionProfiles/profiles_settings.xml	(date 1615939916288)
+@@ -0,0 +1,6 @@
++<component name="InspectionProjectProfileManager">
++  <settings>
++    <option name="USE_PROJECT_PROFILE" value="false" />
++    <version value="1.0" />
++  </settings>
++</component>
+\ No newline at end of file
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+new file mode 100644
+--- /dev/null	(date 1615939916303)
++++ b/.idea/vcs.xml	(date 1615939916303)
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="$PROJECT_DIR$" vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
