@@ -22,7 +22,7 @@ class TestCharacter(CharacterEntity):
 
     def do(self, wrld):
         # Your code here
-        print (self.x, " ", self.y)
+        #print (self.x, " ", self.y)
         if self.exit is None:
             x, y = self.find_exit(wrld)
         path = self.pathfinding((self.x, self.y), (x,y), wrld) #hard code end point
@@ -34,17 +34,13 @@ class TestCharacter(CharacterEntity):
         #     self.update_q(wrld, self.x, self.y)
 
         move = self.expectimax(wrld, self.x, self.y, 0, wrld.time)[0]
-        print("MOVE",move)
-        print((self.x, self.y))
         self.move(int(move[0])-int(self.x), int(move[1])-int(self.y))
 
 
     def expectimax(self, wrld, x, y, depth, time):
-        print("HERE")
         world = wrld.from_world(wrld)
 
         path = self.pathfinding((x, y), world.exitcell, world)
-        print(x,y)
         value = -len(path)
         if len(path) == 0:
             return (x,y,0)
@@ -56,24 +52,19 @@ class TestCharacter(CharacterEntity):
         possible = self.get_neighbors([x,y], world)
         free = []
         for point in possible:
-            print(world.grid[point[0]][point[1]])
             if world.grid[point[0]][point[1]] == False:
                 free.append(point)
 
-        print(possible)
-        print(free)
         original = world.grid
         max_pt = (-1,-1)
         max_val = -999999999999999
 
         for point in free:
             world.grid = original
-            print(point)
             monster_pos = self.find_monsters(world)
             possible_monster = self.get_neighbors(monster_pos[0], world)
             freemon = []
             for pt in possible_monster:
-                print(world.grid[pt[0]][pt[1]])
                 if world.grid[pt[0]][pt[1]] == False:
                     freemon.append(pt)
 
@@ -99,16 +90,12 @@ class TestCharacter(CharacterEntity):
                 world.grid[point[0]][point[1]] = False
 
             world.grid = original
-            print(value + (monster_val/len(possible_monster)))
 
             if value + (monster_val/len(possible_monster))> max_val:
                 max_pt = point
                 max_val = value + (monster_val/len(possible_monster))
 
         new_pt = (max_pt[0],max_pt[1])
-
-        print("NEW")
-        print(new_pt)
         return (new_pt, max_val)
 
 
