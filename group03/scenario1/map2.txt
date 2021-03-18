@@ -11,6 +11,6 @@ expl_range 3
 | WW    WWW|
 |   WW     |
 |WWWWW     |
-|W   W WWWW|
+|W   WWWWWW|
 | WW      E|
 +----------+
