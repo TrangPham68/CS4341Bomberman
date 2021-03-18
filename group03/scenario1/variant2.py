@@ -20,7 +20,7 @@ with open('../qlearning/weights.csv') as csvfile:
 
 win = 0
 
-for i in range(20):
+for i in range(5):
     # Create the game
     random.seed(100+i) # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')

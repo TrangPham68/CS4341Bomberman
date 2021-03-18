@@ -142,7 +142,7 @@ def get_neighbors(wrld,pos):
     
     return neighbor
         
-def astar(start, end, world):  # start (x,y) and end (x,y)
+def astar(start, end, world,  ignoreWall = True):  # start (x,y) and end (x,y)
     """Apply Astar to find the closest path from start to end in world"""
     startNode = create_node(start)
     endNode = create_node(end)
@@ -166,6 +166,10 @@ def astar(start, end, world):  # start (x,y) and end (x,y)
             break
         neighbor = get_neighbors(world, next.getNodePos())
         for i in neighbor:
+            # if wall, ignore
+            if (ignoreWall and world.wall_at(i[0], i[1])):
+                continue
+
             if not i in seenNeighbor:
                 node = create_node(i)
                 seenNeighbor[i] = node

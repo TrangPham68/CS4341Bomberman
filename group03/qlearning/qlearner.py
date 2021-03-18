@@ -20,7 +20,7 @@ class QAgent(CharacterEntity):
         CharacterEntity.__init__(self, name, player, x, y) 
         self.learning_rate = 0.3
         self.discount_factor = 0.8
-        self.epsilon = 0.25
+        self.epsilon = 0.3
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
@@ -66,6 +66,14 @@ class QAgent(CharacterEntity):
             a = Actions(i).name
             dx = Pos[a].value[0]
             dy = Pos[a].value[1]
+
+            if a == "BOMB": # add bomb as an action
+                if len(wrld.bombs) > 0:
+                    continue
+                else:
+                    actions.append(a)
+                    continue
+
             if (x + dx >= 0) and (x + dx < wrld.width()):
                 if (y + dy >= 0) and (y + dy < wrld.height()):
                     if not wrld.wall_at(x + dx, y + dy) and not wrld.bomb_at(x + dx, y + dy) and not wrld.explosion_at(x + dx, y + dy):
@@ -114,6 +122,7 @@ class QAgent(CharacterEntity):
                 # If we want to place a bomb
                 if action == "BOMB":
                     wrld.me(self).place_bomb()
+                    continue # no movement needed
                 # Move character
                 wrld.me(self).move(a[0], a[1])
 

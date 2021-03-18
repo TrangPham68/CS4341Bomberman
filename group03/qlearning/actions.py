@@ -10,7 +10,7 @@ class Pos(Enum):
     SW = (-1,1)
     W = (-1,0)
     NW = (-1,-1)
-    BOMB = (0,0)
+    BOMB = (2,2)
 
 class Actions(Enum):
     STAY = 0
