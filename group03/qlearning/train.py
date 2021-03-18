@@ -8,15 +8,16 @@ import random
 import csv
 from game import Train, Game
 from monsters.selfpreserving_monster import SelfPreservingMonster
+from monsters.stupid_monster import StupidMonster
 
 # TODO This is your code!
 sys.path.insert(1, '../group03/qlearning')
 from qlearner import QAgent
 
-maps = ['training_maps/1.txt','training_maps/2.txt','training_maps/3.txt','training_maps/4.txt','training_maps/5.txt']
+maps = ['training_maps/1.txt','training_maps/2.txt','training_maps/3.txt','training_maps/4.txt','training_maps/5.txt', '../scenario1/map.txt', '../scenario2/map.txt']
 
 for i in range(5):
-    for j in range(5):
+    for j in range(7):
         for k in range(100):
             # Create the game
             with open('weights.csv') as csvfile:
@@ -41,3 +42,53 @@ for i in range(5):
                 w = csv.writer(csvfile, lineterminator='\n')
                 for k, v in maboi.weights.items():
                     w.writerow([k,v])
+
+for k in range(1000):
+    # Create the game
+    with open('weights.csv') as csvfile:
+        rd = csv.reader(csvfile)
+        weights = {rows[0]: float(rows[1]) for rows in rd}
+
+    t = Train.fromfile(maps[5])
+    t.add_monster(StupidMonster("stupid",  # name
+                                "S",  # avatar
+                                3, 9  # position
+    ))
+
+    # TODO Add your character
+    maboi = QAgent("me", "C", 0, 0, weights)
+    t.add_character(maboi)
+
+    # Run!
+    t.train(1)
+    # t.train(1)
+    with open('weights.csv', 'w') as csvfile:
+        w = csv.writer(csvfile, lineterminator='\n')
+        for k, v in maboi.weights.items():
+            w.writerow([k, v])
+
+
+for k in range(1000):
+    # Create the game
+    with open('weights.csv') as csvfile:
+        rd = csv.reader(csvfile)
+        weights = {rows[0]: float(rows[1]) for rows in rd}
+
+    t = Train.fromfile(maps[7])
+    t.add_monster(SelfPreservingMonster("aggressive",  # name
+                                                "A",  # avatar
+                                                4, 7,  # position
+                                                2  # detection range
+    ))
+
+    # TODO Add your character
+    maboi = QAgent("me", "C", 0, 0, weights)
+    t.add_character(maboi)
+
+    # Run!
+    t.train(1)
+    # t.train(1)
+    with open('weights.csv', 'w') as csvfile:
+        w = csv.writer(csvfile, lineterminator='\n')
+        for k, v in maboi.weights.items():
+            w.writerow([k, v])

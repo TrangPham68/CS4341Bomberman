@@ -18,9 +18,11 @@ def distance_to_monster(wrld, x, y):
         return 0 
 
     path = astar((x,y), (m.x, m.y), wrld, False)
-    length = len(path) 
+    length = len(path)
+    if (length > wrld.height()):
+        return 0
 
-    return 1 /(length +1)
+    return 1.5 /(4*length +1)
 
 def distance_to_exit(wrld, x, y):
     """Find distance from character to exit, normalized"""
@@ -28,7 +30,7 @@ def distance_to_exit(wrld, x, y):
     path = astar((x,y), exit_loc, wrld, False)
     length = len(path) 
 
-    return 1 / (length + 1)
+    return 1 / (0.6*length + 1)
 
 def bomb_radius(wrld, x, y):
     """Find distance from character to closest bomb, normalized"""
@@ -49,7 +51,7 @@ def bomb_radius(wrld, x, y):
 
         # Penalize more if character in range and bomb is about to explode
         if (x,y) in e_range:
-            return (1.0 / (b.timer + 1)) ** 2
+            return (2 / (b.timer + 1)) ** 2
     
     # No bombs
     return 0
@@ -82,7 +84,8 @@ def if_blocked(wrld, x, y):
             if wrld.monsters_at(pos[0], pos[1]):
                 mcnt += 1
     
-    return 1.0 / (mcnt + 1) ** 2
+    #return 1.0 / (mcnt + 1)**2
+    return math.log(0.5*mcnt+1, 10)
 
 def if_bomb(wrld, x, y):
     exit_loc = find_exit(wrld)
@@ -109,7 +112,7 @@ def get_heuristic(start, end, wrld):  # for now just compute distance
     """return the heuristic value from start point to end point"""
     try:
         if (wrld.wall_at(start[0] , start[1])):
-            return 2 * get_distance(start, end)
+            return 5 * get_distance(start, end)
     except:
         print(start)
     return get_distance(start, end)  

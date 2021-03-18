@@ -20,7 +20,7 @@ class QAgent(CharacterEntity):
         CharacterEntity.__init__(self, name, player, x, y) 
         self.learning_rate = 0.3
         self.discount_factor = 0.8
-        self.epsilon = 0.3
+        self.epsilon = 0.15
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
@@ -94,7 +94,9 @@ class QAgent(CharacterEntity):
 
     def q_value(self, wrld, action, x, y):
         """Finds the qvalue of a state-action pair"""
-        q = 0 
+        q = 0
+        if action == (2,2):
+            action = (0,0)
         fvec = self.extract_features(wrld, x + action[0], y + action[1])
         # print("FVEC: ", fvec)
         for f in fvec: 
@@ -111,6 +113,7 @@ class QAgent(CharacterEntity):
         qmax = 0
         m = qf.find_closest_monster(wrld, x, y)
         q_table = {}
+
         
         #Iterate through possible character moves
         legal_a = self.get_legal_actions(wrld,(x,y))
@@ -122,6 +125,11 @@ class QAgent(CharacterEntity):
                 # If we want to place a bomb
                 if action == "BOMB":
                     wrld.me(self).place_bomb()
+                    next_state, events = wrld.next()
+                    # Find optimal character move assuming monster makes best move for self
+                    best_action = self.get_best_action(next_state, x, y)
+                    #q = self.q_value(next_state, a, x, y)
+                    q_table[best_action[0]] = best_action[1]
                     continue # no movement needed
                 # Move character
                 wrld.me(self).move(a[0], a[1])
@@ -168,7 +176,11 @@ class QAgent(CharacterEntity):
             if (r < self.epsilon):
                 new_action = random.choice(legal_a)
             else:
-                new_action = self.get_best_action(wrld, x, y)[0]
+                best_act = self.get_best_action(wrld, x, y)
+                new_action = best_act[0]
+                new_pos = best_act[1]
+                if (new_action == "BOMB"):
+                    Actions.set_bomb_move(new_pos)
         return new_action
 
     def get_astar_action(self, wrld, x, y):
@@ -214,7 +226,7 @@ class QAgent(CharacterEntity):
         elif len(wrld.events) > 0:
             for e in wrld.events:
                 if e.tpe == Event.BOMB_HIT_MONSTER and wrld.me(self) is not None:
-                    r += 10
+                    r += 20
         else:
             r -= 1
         return r
