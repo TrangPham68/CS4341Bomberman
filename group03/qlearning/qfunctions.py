@@ -17,18 +17,18 @@ def distance_to_monster(wrld, x, y):
     if not m: # If there is no monster
         return 0 
 
-    path = astar((x,y), (m.x, m.y), wrld)
+    path = astar((x,y), (m.x, m.y), wrld, False)
     length = len(path) 
 
-    return 1.0 / (length + 1)
+    return 1 /(length +1)
 
 def distance_to_exit(wrld, x, y):
     """Find distance from character to exit, normalized"""
     exit_loc = find_exit(wrld) 
-    path = astar((x,y), exit_loc, wrld)
+    path = astar((x,y), exit_loc, wrld, False)
     length = len(path) 
 
-    return 1.0 / (length + 1)
+    return 1 / (length + 1)
 
 def bomb_radius(wrld, x, y):
     """Find distance from character to closest bomb, normalized"""
@@ -73,6 +73,8 @@ def bomb_radius(wrld, x, y):
 def if_blocked(wrld, x, y):
     exit_loc = find_exit(wrld)
     path = astar((x,y), exit_loc, wrld)
+    if len(path) > 6:  #don't let it look to far ahead
+        path = path[0:5]
     mcnt = 0
 
     for pos in path:
@@ -80,7 +82,7 @@ def if_blocked(wrld, x, y):
             if wrld.monsters_at(pos[0], pos[1]):
                 mcnt += 1
     
-    return 1.0 / (mcnt + 1)
+    return 1.0 / (mcnt + 1) ** 2
 
 def if_bomb(wrld, x, y):
     exit_loc = find_exit(wrld)
@@ -98,14 +100,18 @@ def if_bomb(wrld, x, y):
 
 # HELPER FUNCTUIONS
 
+
 def create_node(pos):
     """create a Node of a specific location"""
     return node.Node(pos)
 
 def get_heuristic(start, end, wrld):  # for now just compute distance
     """return the heuristic value from start point to end point"""
-    if (wrld.wall_at(start[0] , start[1])):
-        return 10 * get_distance(start, end)
+    try:
+        if (wrld.wall_at(start[0] , start[1])):
+            return 2 * get_distance(start, end)
+    except:
+        print(start)
     return get_distance(start, end)  
 
 def get_distance(start, end):  # compute distance

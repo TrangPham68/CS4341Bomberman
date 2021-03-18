@@ -95,7 +95,7 @@ class QAgent(CharacterEntity):
     def q_value(self, wrld, action, x, y):
         """Finds the qvalue of a state-action pair"""
         q = 0 
-        fvec = self.extract_features(wrld, x + action[0], y + action[1]) 
+        fvec = self.extract_features(wrld, x + action[0], y + action[1])
         # print("FVEC: ", fvec)
         for f in fvec: 
             q += self.weights[f] * fvec[f] 
@@ -188,7 +188,7 @@ class QAgent(CharacterEntity):
         x, y = curr_pos[0], curr_pos[1]
         
         exit_loc = qf.find_exit(wrld) 
-        exit_path = qf.astar((x,y), exit_loc, wrld)
+        exit_path = qf.astar((x,y), exit_loc, wrld, False)
         exit_length = len(exit_path) 
 
         m = qf.find_closest_monster(wrld, x, y)
@@ -196,7 +196,7 @@ class QAgent(CharacterEntity):
         if not m: # If there is no monster
             return 0 
 
-        m_path = qf.astar((x,y), (m.x, m.y), wrld)
+        m_path = qf.astar((x,y), (m.x, m.y), wrld, False)
         m_length = len(m_path) 
 
         return (1/(exit_length + 1)) - (1/(m_length + 1))
@@ -210,11 +210,11 @@ class QAgent(CharacterEntity):
         if wrld.exit_at(x,y):
             return 100
         elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
-            return -50
+            return -70
         elif len(wrld.events) > 0:
             for e in wrld.events:
                 if e.tpe == Event.BOMB_HIT_MONSTER and wrld.me(self) is not None:
-                    r += 5
+                    r += 10
         else:
             r -= 1
         return r
