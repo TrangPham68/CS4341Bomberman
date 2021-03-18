@@ -14,7 +14,7 @@ from testcharacter import TestCharacter
 
 # Create the game
 random.seed(123) # TODO Change this if you want different random choices
-g = Game.fromfile('map2.txt')
+g = Game.fromfile('map.txt')
 g.add_monster(SelfPreservingMonster("selfpreserving", # nameUpdate board, our movement, monster, bombs? Walls
                                     "S",              # avatar
                                     3, 9,             # position
@@ -22,19 +22,19 @@ g.add_monster(SelfPreservingMonster("selfpreserving", # nameUpdate board, our mo
 ))
 
 # TODO Add your character
-# g.add_character(TestCharacter("me", # name
-#                               "C",  # avatar
-#                               0, 0  # position
-# ))
-
-# Uncomment this if you want the interactive character
-from interactivecharacter import InteractiveCharacter
-
-# Uncomment this if you want the interactive character
-g.add_character(InteractiveCharacter("me", # name
-                                     "C",  # avatar
-                                     0, 0  # position
+g.add_character(TestCharacter("me", # name
+                              "C",  # avatar
+                              0, 0  # position
 ))
 
+# Uncomment this if you want the interactive character
+# from interactivecharacter import InteractiveCharacter
+#
+# # Uncomment this if you want the interactive character
+# g.add_character(InteractiveCharacter("me", # name
+#                                      "C",  # avatar
+#                                      0, 0  # position
+# ))
+
 # Run!
-g.go()
+g.go(1)

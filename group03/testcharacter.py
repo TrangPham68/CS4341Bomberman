@@ -18,6 +18,8 @@ class TestCharacter(CharacterEntity):
         self.learning_rate = 0.2
         self.discount_factor = 0.8
         self.maxdepth = 1
+
+
     def do(self, wrld):
         # Your code here
         print (self.x, " ", self.y)
@@ -30,18 +32,20 @@ class TestCharacter(CharacterEntity):
         # else:
         #     move = self.q_learn(wrld, self.x, self.y)
         #     self.update_q(wrld, self.x, self.y)
-        print("HELLO")
+
         move = self.expectimax(wrld, self.x, self.y, 0, wrld.time)[0]
-        self.move(move[0]-self.x, move[1]-self.y)
+        print("MOVE",move)
+        print((self.x, self.y))
+        self.move(int(move[0])-int(self.x), int(move[1])-int(self.y))
 
 
     def expectimax(self, wrld, x, y, depth, time):
+        print("HERE")
         world = wrld.from_world(wrld)
 
-        path = self.pathfinding((x, y), (7,18), world)
+        path = self.pathfinding((x, y), world.exitcell, world)
         print(x,y)
         value = -len(path)
-        # print(value)
         if len(path) == 0:
             return (x,y,0)
         value -= (self.distance_to_monster(world, x, y))
@@ -155,7 +159,6 @@ class TestCharacter(CharacterEntity):
                         node.setCostSoFar(cost)
                         node.setEstCost(cost + self.get_heuristic(node.getNodePos(), endNode.getNodePos()))
                         frontier.put(node)
-
         return [] #return empty if we find no path
 
     def get_heuristic(self, start, end):  # for now just compute distance
