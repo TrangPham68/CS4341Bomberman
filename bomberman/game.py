@@ -109,7 +109,7 @@ class Game:
             (self.world, self.events) = self.world.next()
             self.display_gui()
             self.draw()
-            #step()
+            step()
             self.world.next_decisions()
         colorama.deinit()
 

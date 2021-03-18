@@ -37,7 +37,8 @@ class TestCharacter(CharacterEntity):
         #     move = self.q_learn(wrld, self.x, self.y)
         #     self.update_q(wrld, self.x, self.y)
         self.assess_world(wrld)
-        move = self.expectimax(wrld, self.x, self.y, 0, wrld.time)[0]
+        expectimaxresult = self.expectimax(wrld.from_world(wrld), self.x, self.y, 0, wrld.time)
+        move = expectimaxresult[0]
         if self.bomb_prob > 0.8:
             self.place_bomb()
         self.bomb_prob = self.bomb_prob*0.3
@@ -67,7 +68,6 @@ class TestCharacter(CharacterEntity):
         if self.next_nodes == []:
             surrounding = self.get_neighbors(target, world)
             for point in surrounding:
-                print(point)
                 length = len(self.visited)
                 self.visited.add(point)
                 if len(self.visited) > length:
@@ -90,7 +90,8 @@ class TestCharacter(CharacterEntity):
 
 
     def expectimax(self, wrld, x, y, depth, time):
-        world = wrld.from_world(wrld)
+
+        (world, events) = wrld.next()
 
         path = self.pathfinding((x, y), world.exitcell, world)
         value = -len(path)
@@ -100,29 +101,32 @@ class TestCharacter(CharacterEntity):
             self.next_nodes.append(world.exitcell)
             self.visited.add(world.exitcell)
             next_best = self.find_next_best(x, y, self.next_nodes[0], world, world.height() * world.width())
-            path = next_best
+            path = next_best[0]
+            if path == (x,y):
+                self.bomb_prob += 0.9
             value = -next_best[1]
 
-        monster_distance = self.distance_to_monster(world, x, y)
+        monster_distance = self.distance_to_monster(world, x, y)*7
         value -= monster_distance
         if monster_distance == 1:
-            self.bomb_prob = 0.9
+            self.bomb_prob += 0.9
         elif monster_distance == 2:
-            self.bomb_prob = 0.8
-        else:
-            self.bomb_prob = self.bomb_prob*0.05*monster_distance
-
-        if (x,y)==next_best[0]:
-            self.bomb_prob = 1
-            return ((x, y), value)
+            self.bomb_prob += 0.6
 
         if (x,y)==self.find_exit(world):
             self.bomb_prob = 0
             return ((x,y), value)
 
+        if world.explosion_at(x,y):
+            return ((x,y), -99999999)
+
+
         if depth == self.maxdepth:
-            self.bomb_prob = self.bomb_prob - (self.bomb_prob/(depth*10))
+            for event in events:
+                if event.tpe == 2:
+                    return ((x, y), -99999999)
             return ((x, y), value)
+
 
         possible = self.get_neighbors([x,y], world)
         free = []
@@ -130,7 +134,7 @@ class TestCharacter(CharacterEntity):
             if world.grid[point[0]][point[1]] == False:
                 free.append(point)
             else:
-                self.bomb_prob = self.bomb_prob*1.05
+                self.bomb_prob = self.bomb_prob + 0.05
 
         original = world.grid
         max_pt = (-1,-1)
@@ -141,13 +145,6 @@ class TestCharacter(CharacterEntity):
             monster_pos = self.find_monsters(world)
             possible_monster = self.get_neighbors(monster_pos[0], world)
             freemon = []
-
-            for bomb in self.bombs:
-                if point in bomb[2]:
-                    if bomb[1] < 1:
-                        max_val = -99999999
-                    elif bomb[1] < 2:
-                        max_val = -50
 
             for pt in possible_monster:
                 if world.grid[pt[0]][pt[1]] == False:
@@ -334,7 +331,7 @@ class TestCharacter(CharacterEntity):
         path = self.pathfinding((x,y), closest_m, wrld)
         length = len(path)
         if length == 0:
-            return 1
+            return 0
         return 1/(length**2)
 
     # These are our features I think
