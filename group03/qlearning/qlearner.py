@@ -34,7 +34,6 @@ class QAgent(CharacterEntity):
         if self.last_q:
             self.update_weights(wrld, c)
 
-        action = self.get_action(wrld, c.x, c.y)
         #check if astar would be optimal instead
         astarAct = self.get_astar_action(wrld, c.x, c.y)
         #astarAct = None
@@ -95,14 +94,14 @@ class QAgent(CharacterEntity):
         features['dist_to_exit'] = qf.distance_to_exit(wrld, x, y)
         features['bomb_range'] = qf.bomb_radius(wrld, x, y)
 
-        # features['m_to_bomb'] = qf.m_to_bomb(wrld, x, y)
-        # features['if_bomb_w'] = qf.if_bomb_wall(wrld, x, y)
-        if isBomb:
-            features['m_to_bomb'] = qf.m_to_bomb(wrld,x,y)
-            features['if_bomb_w'] = qf.if_bomb_wall(wrld, x, y)
-        else:
-            features['m_to_bomb'] = 0
-            features['if_bomb_w'] = 0
+        features['m_to_bomb'] = qf.m_to_bomb(wrld, x, y)
+        features['if_bomb_w'] = qf.if_bomb_wall(wrld, x, y)
+        # if isBomb:
+        #     features['m_to_bomb'] = qf.m_to_bomb(wrld,x,y)
+        #     features['if_bomb_w'] = qf.if_bomb_wall(wrld, x, y)
+        # else:
+        #     features['m_to_bomb'] = 0
+        #     features['if_bomb_w'] = 0
 
         # features['if_blocked'] = qf.if_blocked(wrld,x,y)
         return features
@@ -142,13 +141,16 @@ class QAgent(CharacterEntity):
                 # If we want to place a bomb
                 if action == "BOMB":
                     wrld.me(self).place_bomb()
-                    # next_state, events = wrld.next()
+                    next_state, events = wrld.next()
                     # # # Find optimal character move assuming monster makes best move for self
-                    # best_act= self.get_best_action(next_state, x, y)
+                    best_act= self.get_best_action(next_state, x, y)
                     # # #q = self.q_value(next_state, a, x, y)
                     # a = best_act[0]
-                    self.bombMove = (0,0)
-                    # q_table[action] = best_act[1]
+                    self.bombMove = Pos[best_act[0]].value
+                    next_state.me(self).move(self.bombMove[0], self.bombMove[1])
+                    next, events = next_state.next()
+
+                    q_table[action] = best_act[1]
                     continue # no movement needed
                 # Move character
                 if not (action == "BOMB"):
@@ -188,7 +190,7 @@ class QAgent(CharacterEntity):
             for k,v in q_table.items():
                 if v == qmax:
                     best_action = k
-                    #break #get the first one
+
 
         return best_action, qmax
 

@@ -224,8 +224,6 @@ def astar(start, end, world,  ignoreWall = True):  # start (x,y) and end (x,y)
                 if (next.getCostSoFar() == math.inf):
                     next.setCostSoFar(0)
                 cost = get_distance(next.getNodePos(), node.getNodePos()) + next.getCostSoFar()
-                # if (world.wall_at(next.getNodePos()[0], next.getNodePos()[1])):
-                #     cost = 1.5*cost
 
                 if (cost < node.getCostSoFar()):
                     node.setParent(next)
