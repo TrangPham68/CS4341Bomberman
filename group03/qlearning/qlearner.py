@@ -19,8 +19,8 @@ class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
         self.learning_rate = 0.3
-        self.discount_factor = 0.8
-        self.epsilon = 0.25
+        self.discount_factor = 0.75
+        self.epsilon = 0.2
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
@@ -41,7 +41,9 @@ class QAgent(CharacterEntity):
         self.last_q = self.q_value(wrld, self.current_action, c.x, c.y)
         self.last_pos = (c.x, c.y)
         self.current_pos = (c.x + move[0], c.y + move[1])
-
+        # print("======================")
+        # print("LAST POS: ", self.last_pos)
+        # print("======================")
         # Place bomb if bomb action is selected
         if action == "BOMB":
             self.place_bomb()
@@ -72,16 +74,18 @@ class QAgent(CharacterEntity):
         features['dist_to_monsters'] = qf.distance_to_monster(wrld, x, y)
         features['dist_to_exit'] = qf.distance_to_exit(wrld, x, y)
         features['bomb_range'] = qf.bomb_radius(wrld, x, y)
-        features['blocked'] = qf.if_blocked(wrld,x,y)
-        features['if_bomb'] = qf.if_bomb(wrld, x, y)
+        features['m_to_bomb'] = qf.m_to_bomb(wrld,x,y)
+        features['if_bomb_w'] = qf.if_bomb_wall(wrld, x, y)
+        # features['if_blocked'] = qf.if_blocked(wrld,x,y)
         return features
 
     def q_value(self, wrld, action, x, y):
         """Finds the qvalue of a state-action pair"""
         q = 0 
         fvec = self.extract_features(wrld, x + action[0], y + action[1]) 
-        # print("FVEC: ", fvec)
+        # print("FOR ACTION: ", action)
         for f in fvec: 
+            # print("FEATURE: ", f, "| VALUE: ", fvec[f], "| WEIGHT:  ", self.weights[f])
             q += self.weights[f] * fvec[f] 
         return q
 
@@ -122,6 +126,7 @@ class QAgent(CharacterEntity):
                         next_pos = path[1]
                         m_best_step = (next_pos[0] - m.x, next_pos[1] - m.y)
                     
+                    # print("MONSTER BEST POSITION: ", next_pos)
                     # Set monster move in Sensed World
                     m.move(m_best_step[0], m_best_step[1])
                     # Go to next state
@@ -130,6 +135,7 @@ class QAgent(CharacterEntity):
                     q = self.q_value(next_state, a, x, y)
                     q_table[action] = q
         
+        # print("QTABLE: ", q_table)
         qtable = list(q_table.values())
         if len(qtable) > 0:
             qmax = max(qtable)
@@ -152,42 +158,26 @@ class QAgent(CharacterEntity):
             else:
                 new_action = self.get_best_action(wrld, x, y)[0]
         return new_action 
-    
-    def eval_state(self, wrld, curr_pos):
-        # If no events,  evaluate state based on ratio between distance to monster and exit
-        x, y = curr_pos[0], curr_pos[1]
-        
-        exit_loc = qf.find_exit(wrld) 
-        exit_path = qf.astar((x,y), exit_loc, wrld)
-        exit_length = len(exit_path) 
 
-        m = qf.find_closest_monster(wrld, x, y)
-
-        if not m: # If there is no monster
-            return 0 
-
-        m_path = qf.astar((x,y), (m.x, m.y), wrld)
-        m_length = len(m_path) 
-
-        return (1/(exit_length + 1)) - (1/(m_length + 1))
-
-    def calc_rewards(self, wrld, x, y):
+    def calc_rewards(self, wrld, pos, action):
         """
         Loop over heuristics function and evaluate at current worldstate
         return sum of heuristics
         """
-        r = 0
-        if wrld.exit_at(x,y):
-            return 100
-        elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
-            return -50
-        elif len(wrld.events) > 0:
-            for e in wrld.events:
-                if e.tpe == Event.BOMB_HIT_MONSTER and wrld.me(self) is not None:
-                    r += 5
+        x, y = (pos[0] + action[0], pos[1] + action[1])
+        next_state, _ = wrld.next()
+
+        # If character can exit
+        if next_state.exit_at(x,y):
+            return 60
+        # If character will died due to explosion or monster
+        elif next_state.explosion_at(x,y) or wrld.monsters_at(x,y):
+            return -25
+        # If there is a bomb but it hasn't gone off yet
+        elif next_state.bomb_at(x,y):
+            return -15
         else:
-            r -= 1
-        return r
+            return -1 # Cost of living
 
     def next_best_state(self, current_state, x, y, a):
         """Get the next best state's q value from a given position"""
@@ -200,23 +190,24 @@ class QAgent(CharacterEntity):
         
     def update_weights(self, current_state, c):
         """Update the weights for Q(s,a)"""
-        # print("\n===========================")
-        # print("UPDATING WEIGHTS:")
         current_action = self.current_action
-        # print("Current action: ", current_action)
-        reward = self.calc_rewards(current_state, c.x, c.y)
-        # print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))
-        current_utility = self.q_value(current_state, current_action, c.x, c.y)
-
+        reward = self.calc_rewards(current_state, (c.x, c.y), current_action)
+        if reward == -25:
+            print("EXPLOSION OR MONSTER ENCOUNTERED AT POSITION: ", (c.x + current_action[0], c.y + current_action[1]))
+        # print("==========================================================")
+        # print("------ CURRENT Q ---- CAN IGNORE -----")
+        current_q = self.q_value(current_state, current_action, c.x, c.y)
+        # print("==========================================================")
+        # print("----------------- NEXT BEST STATE ------------------")
         # Get best action in next state
-        q = self.next_best_state(current_state, c.x, c.y, current_action)
-       
-        # print("Reward;", reward, "Current utility:", current_utility)
-
+        next_q = self.next_best_state(current_state, c.x, c.y, current_action)
+        # print("===========================================================")
         # delta = reward + v(max(a')(Q(s',a'))) - Q(s,a)
-        delta = (reward + (self.discount_factor * q)) - current_utility
+        delta = (reward + (self.discount_factor * next_q)) - current_q
         
         # w = w + alpha * delta * f(s,a)
         fvec = self.extract_features(current_state, c.x, c.y)
         for f in fvec: 
             self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
+
+    

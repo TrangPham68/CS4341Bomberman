@@ -15,9 +15,9 @@ from qlearner import QAgent
 
 maps = ['training_maps/1.txt','training_maps/2.txt','training_maps/3.txt','training_maps/4.txt','training_maps/5.txt']
 
-for i in range(5):
+for i in range(10):
     for j in range(5):
-        for k in range(100):
+        for k in range(20):
             # Create the game
             with open('weights.csv') as csvfile:
                 rd = csv.reader(csvfile)
@@ -35,7 +35,7 @@ for i in range(5):
             t.add_character(maboi)
 
             # Run!
-            t.train(1)
+            t.train(0)
             # t.train(1)
             with open('weights.csv', 'w') as csvfile:
                 w = csv.writer(csvfile)

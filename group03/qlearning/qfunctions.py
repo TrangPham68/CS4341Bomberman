@@ -21,7 +21,7 @@ def distance_to_monster(wrld, x, y):
     path = astar((x,y), (m.x, m.y), wrld)
     length = len(path) 
 
-    return 1.0 / (length + 1)
+    return 1.0 / (length + 1) 
 
 def distance_to_exit(wrld, x, y):
     """Find distance from character to exit, normalized"""
@@ -36,65 +36,79 @@ def bomb_radius(wrld, x, y):
     danger = 0
     bombs = list(wrld.bombs.values())
 
-    # Check if in explosion
-    if wrld.explosion_at(x, y):
-        return 1
+    # If character in explosion
+    if wrld.explosion_at(x,y):
+        return 1.0
 
     # If there is a bomb but character is not in an explosion
     if len(bombs) > 0:
-        b = find_closest_obj(wrld, bombs, x, y)
+        b = bombs[0]
         e_range = expl_radius(wrld, b.x, b.y)
-
-        # Remove current character position from bomb radius
-        e_range.remove((b.x,b.y))
 
         # Penalize more if character in range and bomb is about to explode
         if (x,y) in e_range:
-            return (1.0 / (b.timer + 1)) ** 2
+            return (1.0 / (b.timer + 1)) ** 0.1
     
     # No bombs
     return 0
 
-# def if_expl(wrld, x, y):
-#     """Check if agent and future moves is within explosion"""
-#     for dx in [-1,0,1]:
-#         # Avoid out-of-bound indexing 
-#         if (x + dx >= 0) and (x + dx < wrld.width()):
-#             # Loop through y directions
-#             for dy in [-1,0,1]:
-#                 # Avoid out-of-bound indexing
-#                 if (y + dy >= 0) and (y + dy < wrld.height()):
-#                     for i in range(-1, 1):
-#                         for j in range(-1,1):
-#                             if wrld.explosion_at(x + dx + i, y + dy + j):
-#                                 return 1.0
-
-#     return 0
-
 def if_blocked(wrld, x, y):
     exit_loc = find_exit(wrld)
     path = astar((x,y), exit_loc, wrld)
-    mcnt = 0
+    idx = 0
     for pos in path:
+        idx += 1
         if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
             if wrld.monsters_at(pos[0], pos[1]):
-                mcnt += 1
+                return 1.0 / (idx + 1)
     
-    return 1.0 / (mcnt + 1)
+    return 0
 
-def if_bomb(wrld, x, y):
+def m_to_bomb(wrld,x,y):
+    bombs = list(wrld.bombs.values())
+    if len(bombs) > 0:
+        b = bombs[0]
+        m = find_closest_monster(wrld,x,y)
+        if m:
+            e_range = expl_radius(wrld,b.x,b.y)
+            if (m.x,m.y) in e_range:
+                return 1.0
+    return 0
+        
+# def if_bomb_monster(wrld, x, y):
+#     exit_loc = find_exit(wrld)
+#     path = astar((x,y), exit_loc, wrld, False) #Astar to exit without minding walls
+#     if len(path) > 0: 
+#         for pos in path:
+#             if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
+#                 if wrld.monsters_at(pos[0], pos[1]): # Check if wall or monster is in astar path 
+#                     # Check if wall is in bomb radius if character places bomb
+#                     b_range = expl_radius(wrld, x, y)
+#                     if pos in b_range:
+#                         return 1.0
+
+#     return 0
+
+def if_bomb_wall(wrld, x, y):
     exit_loc = find_exit(wrld)
     path = astar((x,y), exit_loc, wrld, False) #Astar to exit without minding walls
-    if len(path) > 0: 
+    b_range = expl_radius(wrld, x, y)
+    m = wrld.monsters.values()
+    if len(path) > 0 and len(m) > 0: # If we have a path and there are monsters
         for pos in path:
             if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
-                if wrld.wall_at(pos[0], pos[1]): # Check if wall is in astar path 
-                    # Check if wall is in bomb radius if character places bomb
-                    b_range = expl_radius(wrld, x, y)
+                if wrld.wall_at(pos[0], pos[1]): # Check if wall or monster is in astar path 
                     if pos in b_range:
-                        return 1
+                        return 1.0
 
     return 0
+
+# def all_alone(wrld,x,y):
+#     """Check if agent is all alone in the world"""
+#     exit_loc = find_exit(wrld)
+#     if len(wrld.monsters.values()) == 0 and len(astar((x,y),exit_loc,wrld)) > 0:
+#         return 1.0
+#     return 0
 
 # HELPER FUNCTUIONS
 
