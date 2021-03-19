@@ -1,11 +1,12 @@
 # This is necessary to find the main code
 import math
 import sys
-
 import node
 
 sys.path.insert(0, '../bomberman')
 # Import necessary stuff
+from colorama import Fore, Back
+from sensed_world import SensedWorld
 from queue import PriorityQueue
 
 #FEATURES
@@ -17,104 +18,106 @@ def distance_to_monster(wrld, x, y):
     if not m: # If there is no monster
         return 0 
 
-    path = astar((x,y), (m.x, m.y), wrld, False)
-    length = len(path)
-    if (length > wrld.height()):
-        return 0
+    path = astar((x,y), (m.x, m.y), wrld)
+    length = len(path) 
 
-    return 1.5 /(4*length +1)
+    return 1.0 / (length + 1) 
 
 def distance_to_exit(wrld, x, y):
     """Find distance from character to exit, normalized"""
     exit_loc = find_exit(wrld) 
-    path = astar((x,y), exit_loc, wrld, False)
+    path = astar((x,y), exit_loc, wrld)
     length = len(path) 
 
-    return 1 / (0.6*length + 1)
+    return 1.0 / (length + 1)
 
 def bomb_radius(wrld, x, y):
     """Find distance from character to closest bomb, normalized"""
     danger = 0
     bombs = list(wrld.bombs.values())
 
-    # Check if in explosion
-    if wrld.explosion_at(x, y):
-        return 1
+    # If character in explosion
+    if wrld.explosion_at(x,y):
+        return 1.0
 
     # If there is a bomb but character is not in an explosion
     if len(bombs) > 0:
-        b = find_closest_obj(wrld, bombs, x, y)
+        b = bombs[0]
         e_range = expl_radius(wrld, b.x, b.y)
-
-        # Remove current character position from bomb radius
-        e_range.remove((b.x,b.y))
 
         # Penalize more if character in range and bomb is about to explode
         if (x,y) in e_range:
-            return (2 / (b.timer + 1)) ** 2
+            return (1.0 / (b.timer + 1)) ** 0.1
     
     # No bombs
     return 0
 
-# def if_expl(wrld, x, y):
-#     """Check if agent and future moves is within explosion"""
-#     for dx in [-1,0,1]:
-#         # Avoid out-of-bound indexing 
-#         if (x + dx >= 0) and (x + dx < wrld.width()):
-#             # Loop through y directions
-#             for dy in [-1,0,1]:
-#                 # Avoid out-of-bound indexing
-#                 if (y + dy >= 0) and (y + dy < wrld.height()):
-#                     for i in range(-1, 1):
-#                         for j in range(-1,1):
-#                             if wrld.explosion_at(x + dx + i, y + dy + j):
-#                                 return 1.0
-
-#     return 0
-
 def if_blocked(wrld, x, y):
     exit_loc = find_exit(wrld)
     path = astar((x,y), exit_loc, wrld)
-    if len(path) > 6:  #don't let it look to far ahead
-        path = path[0:5]
-    mcnt = 0
-
+    idx = 0
     for pos in path:
+        idx += 1
         if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
             if wrld.monsters_at(pos[0], pos[1]):
-                mcnt += 1
+                return 1.0 / (idx + 1)
     
-    #return 1.0 / (mcnt + 1)**2
-    return math.log(0.5*mcnt+1, 10)
+    return 0
 
-def if_bomb(wrld, x, y):
+def m_to_bomb(wrld,x,y):
+    bombs = list(wrld.bombs.values())
+    if len(bombs) > 0:
+        b = bombs[0]
+        m = find_closest_monster(wrld,x,y)
+        if m:
+            e_range = expl_radius(wrld,b.x,b.y)
+            if (m.x,m.y) in e_range:
+                return 1.0
+    return 0
+        
+# def if_bomb_monster(wrld, x, y):
+#     exit_loc = find_exit(wrld)
+#     path = astar((x,y), exit_loc, wrld, False) #Astar to exit without minding walls
+#     if len(path) > 0: 
+#         for pos in path:
+#             if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
+#                 if wrld.monsters_at(pos[0], pos[1]): # Check if wall or monster is in astar path 
+#                     # Check if wall is in bomb radius if character places bomb
+#                     b_range = expl_radius(wrld, x, y)
+#                     if pos in b_range:
+#                         return 1.0
+
+#     return 0
+
+def if_bomb_wall(wrld, x, y):
     exit_loc = find_exit(wrld)
     path = astar((x,y), exit_loc, wrld, False) #Astar to exit without minding walls
-    if len(path) > 0: 
+    b_range = expl_radius(wrld, x, y)
+    m = wrld.monsters.values()
+    if len(path) > 0 and len(m) > 0: # If we have a path and there are monsters
         for pos in path:
             if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
-                if wrld.wall_at(pos[0], pos[1]): # Check if wall is in astar path 
-                    # Check if wall is in bomb radius if character places bomb
-                    b_range = expl_radius(wrld, x, y)
+                if wrld.wall_at(pos[0], pos[1]): # Check if wall or monster is in astar path 
                     if pos in b_range:
-                        return 1
+                        return 1.0
 
     return 0
 
-# HELPER FUNCTUIONS
+# def all_alone(wrld,x,y):
+#     """Check if agent is all alone in the world"""
+#     exit_loc = find_exit(wrld)
+#     if len(wrld.monsters.values()) == 0 and len(astar((x,y),exit_loc,wrld)) > 0:
+#         return 1.0
+#     return 0
 
+# HELPER FUNCTUIONS
 
 def create_node(pos):
     """create a Node of a specific location"""
     return node.Node(pos)
 
-def get_heuristic(start, end, wrld):  # for now just compute distance
+def get_heuristic(start, end):  # for now just compute distance
     """return the heuristic value from start point to end point"""
-    try:
-        if (wrld.wall_at(start[0] , start[1])):
-            return 5 * get_distance(start, end)
-    except:
-        print(start)
     return get_distance(start, end)  
 
 def get_distance(start, end):  # compute distance
@@ -151,7 +154,7 @@ def get_neighbors(wrld,pos):
     
     return neighbor
         
-def astar(start, end, world,  ignoreWall = True):  # start (x,y) and end (x,y)
+def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
     """Apply Astar to find the closest path from start to end in world"""
     startNode = create_node(start)
     endNode = create_node(end)
@@ -161,7 +164,7 @@ def astar(start, end, world,  ignoreWall = True):  # start (x,y) and end (x,y)
 
     frontier = PriorityQueue()
     startNode.setCostSoFar(0)
-    startNode.setEstCost(get_heuristic(start, end, world))
+    startNode.setEstCost(get_heuristic(start, end))
     frontier.put(startNode)
     seenNeighbor[start] = startNode
     path = []
@@ -195,7 +198,7 @@ def astar(start, end, world,  ignoreWall = True):  # start (x,y) and end (x,y)
                 if (cost < node.getCostSoFar()):
                     node.setParent(next)
                     node.setCostSoFar(cost)
-                    node.setEstCost(cost + get_heuristic(node.getNodePos(), endNode.getNodePos(), world))
+                    node.setEstCost(cost + get_heuristic(node.getNodePos(), endNode.getNodePos()))
                     frontier.put(node)
 
     return path #return empty if we find no path
@@ -209,7 +212,7 @@ def find_closest_obj(wrld, objs, x, y):
     
     for o in objs:
         # Find distance from (x,y) to object
-        d1 = get_distance((x,y), (o.x, o.y))
+        d1 = get_distance((x,y), (o.x, o.y)) 
         d2 = get_distance((x,y), (closest_o.x, closest_o.y))
 
         # If d1 is closer than d2
@@ -232,7 +235,7 @@ def find_closest_monster(wrld, x, y):
         monster = iter(wrld.monsters.values())
         m1 = next(monster)[0]
         m2 = next(monster)[0]
-        m_pos_list = [m1, m2]
+        m_pos_list = [(m1.x, m1.y), (m2.x, m2.y)]
         m_closest = find_closest_obj(wrld, m_pos_list, x, y)
         if m_closest == m_pos_list[0]:
             m = m1 
