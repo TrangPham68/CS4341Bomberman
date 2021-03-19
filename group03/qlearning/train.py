@@ -10,6 +10,8 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 from monsters.stupid_monster import StupidMonster
 from game import Game
 from testcharacter import TestCharacter
+from scenario2var1 import AStarCharacter
+from interactivecharacter import InteractiveCharacter
 
 # TODO This is your code!
 sys.path.insert(1, '../group03/qlearning')
@@ -20,21 +22,22 @@ for m in range(5):
     for k in range(100):
         # Create the game
         g = Game.fromfile(maps[m])
-        g.add_monster(SelfPreservingMonster("aggressive", # name
-                                            "A",          # avatar
-                                            4, 7,        # position
-                                            2             # detection range
-        ))
+        # g.add_monster(SelfPreservingMonster("aggressive", # name
+        #                                     "A",          # avatar
+        #                                     4, 7,        # position
+        #                                     2             # detection range
+        # ))
 
         # g.add_monster(StupidMonster("stupid", # name
         #                             "S",      # avatar
         #                             1, 6      # position
         # ))
 
-        g.add_character(TestCharacter("me",  # name
+        g.add_character(AStarCharacter("me",  # name
                                       "C",  # avatar
                                       0, 0  # position
                                       ))
 
+        g.add_character(InteractiveCharacter("THEM", "C", 4,4))
         # Run!
         g.go(1)

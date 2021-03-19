@@ -45,6 +45,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\group03\scenario2var1.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\group03\testcharacter.py">
           <value>
             <Attribute>
