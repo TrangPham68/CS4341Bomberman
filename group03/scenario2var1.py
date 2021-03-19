@@ -22,12 +22,13 @@ class AStarCharacter(CharacterEntity):
         maxresult = self.get_best(wrld, self.x, self.y)
         if maxresult[2]:
             self.place_bomb()
+        print(maxresult)
         self.move(maxresult[0], maxresult[1])
+
     def closest_accessable_character(self, wrld, x, y):
         """return the closest character"""
 
         chars = self.find_characters(wrld)
-        print(chars)
 
         if len(chars) == 0:
             return 0
@@ -71,14 +72,55 @@ class AStarCharacter(CharacterEntity):
         #Find the closest opponent and find the spaces 2 away
         closest_char = self.closest_accessable_character(wrld,x,y)
 
+        all_bombs = self.find_bombs(wrld)
+        blast_radius = set()
+        for bomb in all_bombs:
+            radius = self.bomb_radius(bomb, world)
+            for point in radius:
+                blast_radius.add(point)
+
+        neighbors = self.get_neighbors((x,y),world)
+
+        if len(all_bombs) > 0:
+            farthest = (x, y)
+            distance = 0
+            for neighbor in neighbors:
+                for issue in blast_radius:
+                    if neighbor == issue:
+                        break
+                if not world.empty_at(neighbor[0], neighbor[1]):
+                    continue
+
+                benefit = 0
+                benefit = self.distance_to_monster(world, neighbor[0], neighbor[1]) + self.distance_to_bomb(world,
+                                                                                                            neighbor[0],
+                                                                                                neighbor[1])
+                for secnd_neighbor in self.get_neighbors(neighbor,world):
+                    for issue in blast_radius:
+                        if neighbor == issue:
+                            break
+                    if not world.empty_at(neighbor[0], neighbor[1]):
+                        continue
+
+                    benefit += self.distance_to_monster(world, secnd_neighbor[0], secnd_neighbor[1])*10/8
+                    benefit += self.distance_to_bomb(world,secnd_neighbor[0],secnd_neighbor[1])/8
+
+
+                if benefit > distance:
+                    distance = benefit
+                    farthest = neighbor
+                    print(farthest)
+                    print(benefit)
+            return (farthest[0]-x, farthest[1]-y, False)
+
         bomb_target_zone = set()
         if closest_char[0] != -1:
             my_neighbors = set()
-            for n in self.get_neighbors(closest_char,wrld):
+            for n in self.get_neighbors(closest_char,world):
                 my_neighbors.add(n)
             their_neighbors = set()
             for neighbor in my_neighbors:
-                for n in self.get_neighbors(neighbor,wrld):
+                for n in self.get_neighbors(neighbor,world):
                     their_neighbors.add(n)
             for n in their_neighbors.difference(my_neighbors):
                 if n == closest_char:
@@ -89,8 +131,9 @@ class AStarCharacter(CharacterEntity):
 
         #Find viable targets
         viable = set()
+        backup = set ()
         for target in bomb_target_zone:
-            if not world.empty_at(target[0], target[1]):
+            if world.empty_at(target[0], target[1]):
                 viable.add(target)
 
         bomb_target_zone = viable
@@ -98,12 +141,9 @@ class AStarCharacter(CharacterEntity):
         closest_target_path = []
 
         for target in bomb_target_zone:
-            print(target)
-            print(x,y)
             t_x = target[0]
             t_y = target[1]
-            target_path = self.pathfinding((x,y),(t_x,t_y),wrld)
-            print(target_path)
+            target_path = self.pathfinding((x,y),(t_x,t_y),world)
 
             if len(closest_target_path) == 0:
                 closest_target=target
@@ -113,37 +153,33 @@ class AStarCharacter(CharacterEntity):
                 closest_target_path=target_path
                 closest_target=target
 
-        print("Closest Target", closest_target)
-        print(closest_target_path)
-        #If you are on the exit, exit the map
-        # if (x,y)==self.find_exit(world):
-        #     return (0,0, False)
 
-        neighbors = self.get_neighbors(closest_target,world)
+        #If you are close enough place a bomb
+        if self.get_distance((x,y),closest_char) <= 2 or len(closest_target_path) < 2:
+            for neighbor in neighbors:
+                if neighbor[0] - 1 == x and neighbor[1] - 1 == y:
+                    return (neighbor[0]-x, neighbor[1]-y, True)
+                elif neighbor[0] + 1 == x and neighbor[1] + 1 == y:
+                    return (neighbor[0]-x, neighbor[1]-y, True)
+                elif neighbor[0] - 1 == x and neighbor[1] + 1 == y:
+                    return (neighbor[0]-x, neighbor[1]-y, True)
+                elif neighbor[0] + 1 == x and neighbor[1] - 1 == y:
+                    return (neighbor[0]-x, neighbor[1]-y, True)
 
         #If the exit is unreachable and there is no path
+        # if len(closest_target_path) == 0:
+        #
+        #     #Find the space that is as close as you can get
+        #     self.next_nodes.append(closest_target)
+        #     self.visited.add(closest_target)
+        #     next_best = self.find_next_best(x, y, self.next_nodes[0], world, world.height() * world.width())
+        #
+        #     #Set the path to the close enough path
+        #     closest_target_path = self.pathfinding((x,y), next_best[0], wrld)
+        #     closest_target = next_best[0]
+
         if len(closest_target_path) == 0:
-
-            #Find the space that is as close as you can get
-            self.next_nodes.append(closest_target)
-            self.visited.add(closest_target)
-            next_best = self.find_next_best(x, y, self.next_nodes[0], world, world.height() * world.width())
-
-            #If you have reached that closest point, place a bomb and head to a diagonal neighbor
-            if next_best[0][0] == x and next_best[0][1] == y:
-                for neighbor in neighbors:
-                    if neighbor[0] - 1 == x and neighbor[1] - 1 == y:
-                        return (neighbor[0]-x, neighbor[1]-y, True)
-                    elif neighbor[0] + 1 == x and neighbor[1] + 1 == y:
-                        return (neighbor[0]-x, neighbor[1]-y, True)
-                    elif neighbor[0] - 1 == x and neighbor[1] + 1 == y:
-                        return (neighbor[0]-x, neighbor[1]-y, True)
-                    elif neighbor[0] + 1 == x and neighbor[1] - 1 == y:
-                        return (neighbor[0]-x, neighbor[1]-y, True)
-
-            #Set the path to the close enough path
-            closest_target_path = self.pathfinding((x,y), next_best[0], wrld)
-
+            return(0,0,False)
 
 
         #Check if any of the neighbors are in the path
@@ -158,6 +194,60 @@ class AStarCharacter(CharacterEntity):
                     #Go there
                     return (neighbor[0]-x, neighbor[1]-y, False)
 
+
+    def get_path(self, startNode, endNode):
+        """return the list of (x, y) point from start to end by backtracking parent node from end"""
+        current = endNode
+        path = []
+
+        while (not current == startNode):
+            path.insert(0, current.getNodePos())
+            current = current.getParent()
+
+        path.insert(0, startNode.getNodePos())
+        # print(path)
+        return path
+
+    def bomb_radius(self, bomb, world):
+        bomb_radius = set()
+        b_range = world.expl_range
+        x_min = bomb[0]-b_range
+        x_max = bomb[0]+b_range
+        y_min = bomb[1] - b_range
+        y_max = bomb[1] + b_range
+        for x in  range(int(x_min), int(x_max)):
+            if x == world.width():
+                break
+            if x < 0:
+                x+=1
+                continue
+            if x == bomb[0]:
+                bomb_radius.add((x,bomb[1]))
+                x+=1
+                continue
+            if world.characters_at(x,bomb[1]) or world.bomb_at(x,bomb[1]) or world.wall_at(x,bomb[1]) or world.explosion_at(x,bomb[1]):
+                bomb_radius.add((x,bomb[1]))
+                break
+            bomb_radius.add((x,bomb[1]))
+            x+=1
+
+        for y in range(y_min,y_max):
+            if y == world.height():
+                break
+            if y < 0:
+                y+=1
+                continue
+            if y == bomb[1]:
+                bomb_radius.add((bomb[0],y))
+                y+=1
+                continue
+            if world.characters_at(bomb[0],y) or world.bomb_at(bomb[0],y) or world.wall_at(bomb[0],y) or world.explosion_at(bomb[0],y) or x == world.width():
+                bomb_radius.add((bomb[0],y))
+                break
+            bomb_radius.add((bomb[0],y))
+            y+=1
+
+        return bomb_radius
 
     def find_next_best(self, x, y, target, world, path):
         """Find the next best space to an inaccessable target space"""
@@ -211,6 +301,8 @@ class AStarCharacter(CharacterEntity):
 
         #Return the point that is closest to the exit and to the starting position
         return (min_point, min_path)
+
+
     def pathfinding(self, start, end, world):
         """Apply Astar to find the closest path from start to end in world"""
 
@@ -259,19 +351,6 @@ class AStarCharacter(CharacterEntity):
                         node.setEstCost(cost + self.get_heuristic(node.getNodePos(), endNode.getNodePos()))
                         frontier.put(node)
         return [] #return empty if we find no path
-
-    def get_path(self, startNode, endNode):
-        """return the list of (x, y) point from start to end by backtracking parent node from end"""
-        current = endNode
-        path = []
-
-        while (not current == startNode):
-            path.insert(0, current.getNodePos())
-            current = current.getParent()
-
-        path.insert(0, startNode.getNodePos())
-        # print(path)
-        return path
 
 
     def get_neighbors(self, pos, world):
@@ -362,10 +441,32 @@ class AStarCharacter(CharacterEntity):
         length = len(path)
         if length == 0:
             return 0
-        return 1/(length**2)
+
+        return length
+
+    def distance_to_bomb(self, wrld, x, y):
+        """check position of monster relative to character"""
+        bombs = self.find_bombs(wrld)
+
+        if len( bombs) == 0:
+            return 0
+        closest_b = bombs[0]
+
+        for bomb in bombs:
+            d1 = self.get_distance((x, y),bomb)
+            d2 = self.get_distance((x, y), closest_b)
+            if d1 < d2:
+                closest_b = bomb
+
+        path = self.pathfinding((x, y), closest_b, wrld)
+        length = len(path)
+        if length == 0:
+            return 0
+
+        return length
 
     # These are our features I think
-    def distance_to_bombs(self, wrld, x, y):
+    def closest_bombs(self, wrld, x, y):
         """check position of monster relative to character"""
         bombs = self.find_bombs(wrld)
 
@@ -377,13 +478,10 @@ class AStarCharacter(CharacterEntity):
             d1 = self.get_distance((x, y), bomb)
             d2 = self.get_distance((x, y), closest_b)
             if d1 < d2:
-                closest_m = bomb
+                closest_b = bomb
 
         path = self.pathfinding((x, y), closest_b, wrld)
-        length = len(path)
-        if length == 0:
-            return 1
-        return 1 / (length ** 2)
+        return closest_b
 
     def distance_to_exit(self, wrld, x, y):
         """check distance to exit"""
