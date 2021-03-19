@@ -81,12 +81,12 @@ class QAgent(CharacterEntity):
 
     def q_value(self, wrld, action, x, y):
         """Finds the qvalue of a state-action pair"""
-        q = 0 
-        fvec = self.extract_features(wrld, x + action[0], y + action[1]) 
+        q = 0
+        fvec = self.extract_features(wrld, x + action[0], y + action[1])
         # print("FOR ACTION: ", action)
         for f in fvec: 
             # print("FEATURE: ", f, "| VALUE: ", fvec[f], "| WEIGHT:  ", self.weights[f])
-            q += self.weights[f] * fvec[f] 
+            q += self.weights[f] * fvec[f]
         return q
 
     def get_best_action(self,wrld,x,y):
@@ -157,7 +157,18 @@ class QAgent(CharacterEntity):
                 new_action = random.choice(legal_a)
             else:
                 new_action = self.get_best_action(wrld, x, y)[0]
-        return new_action 
+        return new_action
+
+    def get_astar_action(self, wrld, x, y):
+        """Get the next action on the astar path if there is an exit that is not blocked and no monster"""
+        exit = qf.find_exit(wrld)
+        action = "STAY"
+        if exit:
+            path = qf.astar((x, y), exit, wrld)
+            if len(path) > 1 and not qf.find_closest_monster(wrld, x, y):
+                action = Pos((path[1][0] - x, path[1][1] - y)).name
+                return action
+        return None
 
     def calc_rewards(self, wrld, pos, action):
         """
@@ -210,4 +221,3 @@ class QAgent(CharacterEntity):
         for f in fvec: 
             self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
 
-    
