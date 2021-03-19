@@ -20,9 +20,9 @@ with open('../qlearning/weights.csv') as csvfile:
 
 win = 0
 
-for i in range(10):
+for i in range(1):
     # Create the game
-    random.seed(100+i) # TODO Change this if you want different random choices
+    random.seed(i) # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
 
     g.add_monster(StupidMonster("stupid", # name
@@ -36,6 +36,7 @@ for i in range(10):
 
     # Run!
     g.go(1)
+    maboi.update_weights(g.world, None)
     if g.done() and g.world.scores["me"] > 0:
         win += 1
 

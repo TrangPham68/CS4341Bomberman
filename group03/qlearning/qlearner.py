@@ -18,7 +18,7 @@ from actions import Actions, Pos
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.3
+        self.learning_rate = 0.4
         self.discount_factor = 0.8
         self.epsilon = 0.15
         self.weights = weights
@@ -36,6 +36,7 @@ class QAgent(CharacterEntity):
 
         #check if astar would be optimal instead
         astarAct = self.get_astar_action(wrld, c.x, c.y)
+        #astarAct = None
         if astarAct:
             action = astarAct
 
@@ -219,14 +220,22 @@ class QAgent(CharacterEntity):
         return sum of heuristics
         """
         r = 0
+        time = wrld.time
+        scores = wrld.scores[self.name]
         if wrld.exit_at(x,y):
             return 100
         elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
             return -70
         elif len(wrld.events) > 0:
             for e in wrld.events:
-                if e.tpe == Event.BOMB_HIT_MONSTER and wrld.me(self) is not None:
-                    r += 20
+                if e.tpe == Event.BOMB_HIT_MONSTER: #and not not wrld.me(self):
+                    r += 40
+                if e.tpe == Event.BOMB_HIT_WALL: # and not not wrld.me(self):
+                    r += 5
+                if e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
+                    return wrld.scores[self.name] / 50
+                if e.tpe == Event.CHARACTER_FOUND_EXIT:
+                    return 2 * wrld.time / 50
         else:
             r -= 1
         return r
@@ -246,21 +255,28 @@ class QAgent(CharacterEntity):
         # print("UPDATING WEIGHTS:")
         current_action = self.current_action
         # print("Current action: ", current_action)
-        reward = self.calc_rewards(current_state, c.x, c.y)
+        if not c:
+            currPos = self.last_pos
+        else:
+            currPos = (c.x, c.y)
+        reward = self.calc_rewards(current_state, currPos[0], currPos[1])
         # print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))
-        current_utility = self.q_value(current_state, current_action, c.x, c.y)
+        current_utility = self.q_value(current_state, current_action, currPos[0], currPos[1])
 
         # Get best action in next state
-        q = self.next_best_state(current_state, c.x, c.y, current_action)
+        if not c:
+            q = 0
+        else:
+            q = self.next_best_state(current_state, currPos[0], currPos[1], current_action)
        
-        #print("Reward;", reward, "Current utility:", current_utility)
+        print("Reward;", reward, "Current utility:", current_utility)
 
         # delta = reward + v(max(a')(Q(s',a'))) - Q(s,a)
         delta = (reward + (self.discount_factor * q)) - current_utility
         
         # w = w + alpha * delta * f(s,a)
-        fvec = self.extract_features(current_state, c.x, c.y)
+        fvec = self.extract_features(current_state, currPos[0], currPos[1])
         #print("fval")
-        print(fvec)
+        #print(fvec)
         for f in fvec: 
             self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]

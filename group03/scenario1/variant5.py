@@ -24,8 +24,8 @@ with open('../qlearning/weights.csv') as csvfile:
     weights = {rows[0]: float(rows[1]) for rows in rd}
 
 win =0
-for i in range(5):
-    random.seed(123)  # TODO Change this if you want different random choices
+for i in range(100):
+    random.seed(i)  # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
     g.add_monster(StupidMonster("stupid", # name
                                 "S",      # avatar
