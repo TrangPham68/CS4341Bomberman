@@ -4,7 +4,7 @@ sys.path.insert(0, '../../bomberman')
 sys.path.insert(1, '..')
 
 # Import necessary stuff
-from game import Game
+from game import Game, Train
 import random
 import csv
 from monsters.selfpreserving_monster import SelfPreservingMonster
@@ -17,40 +17,43 @@ from qlearner import QAgent
 
 # Create the game
 winRate = []
-for variant in range (5):
-	win = 0;
-	for trial in range (1):
-		random.seed(123)
-		with open('../qlearning/weights.csv') as csvfile:
-			rd = csv.reader(csvfile)
-			weights = {rows[0]: float(rows[1]) for rows in rd}
+for game in range (5):
+	for variant in range(5):
+		win = 0;
+		for trial in range(100):
+			random.seed(trial)
+			with open('tourWeight.csv') as csvfile:
+				rd = csv.reader(csvfile)
+				weights = {rows[0]: float(rows[1]) for rows in rd}
 
-		g = Game.fromfile('map.txt')
-		if variant == 1 or variant == 4:
-			g.add_monster(StupidMonster("stupid",  # name
+			g = Train.fromfile('map.txt')
+			if variant == 1 or variant == 4:
+				g.add_monster(StupidMonster("stupid",  # name
 			                            "S",  # avatar
 			                            3, 5  # position
-			))
-		if variant == 2:
-			g.add_monster(StupidMonster("stupid",  # name
+				))
+			if variant == 2:
+				g.add_monster(StupidMonster("stupid",  # name
 			                            "S",  # avatar
 			                            3, 5  # position
-			))
-		if variant == 3 or variant == 4:
-			g.add_monster(SelfPreservingMonster("aggressive",  # name
+				))
+			if variant == 3 or variant == 4:
+				g.add_monster(SelfPreservingMonster("aggressive",  # name
 			                                    "A",  # avatar
 			                                    3, 13,  # position
 			                                    2  # detection range
-			))
-		maboi = QAgent("me", "C", 0, 0, weights)
-		g.add_character(maboi)
-		g.go(1)
-		if g.done():
-			if maboi.win == 1:
-				win += 1
-	winRate.append((variant, win))
+				))
+			maboi = QAgent("me", "C", 0, 0, weights)
+			g.add_character(maboi)
+			g.go(1)
 
-print(winRate)
+			with open('tourWeight.csv', 'w') as csvfile:
+				w = csv.writer(csvfile, lineterminator='\n')
+				for k, v in maboi.weights.items():
+					w.writerow([k, v])
+
+
+
 
 
 

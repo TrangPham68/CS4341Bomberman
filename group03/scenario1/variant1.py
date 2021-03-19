@@ -28,6 +28,7 @@ for i in range(5):
 
     # Run!
     g.go(1)
+    maboi.update_weights(g.world, None)
     if g.done() and g.world.scores["me"] > 0:
         win += 1
 

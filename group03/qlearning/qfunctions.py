@@ -19,17 +19,31 @@ def distance_to_monster(wrld, x, y):
         return 0 
 
     path = astar((x,y), (m.x, m.y), wrld)
-    length = len(path) 
-
-    return 1.0 / (length + 1) 
+    length = len(path)
+    path = astar((x,y), (m.x, m.y), wrld, False)
+    length = len(path)
+    # if (length > wrld.height()):
+    #     return 0
+    cost = 0
+    if length > 1:
+        #print(path[length - 1][1])
+        cost = path[length - 1][1]
+    #return 1 / ((0.5 * cost) ** 2 + 1)
+    return 1.0 / (cost + 1)
 
 def distance_to_exit(wrld, x, y):
     """Find distance from character to exit, normalized"""
     exit_loc = find_exit(wrld) 
-    path = astar((x,y), exit_loc, wrld)
-    length = len(path) 
+    path = astar((x,y), exit_loc, wrld, False)
+    length = len(path)
+    cost = 0
+    if length > 1:
+        #print(path[length-1][1])
+        cost = path[length-1][1]
+    #return 1 / (0.6*length + 1)
 
-    return 1.0 / (length + 1)
+    #return 1 / (0.5 * cost + 1)
+    return 1.0 / (cost + 1)
 
 def bomb_radius(wrld, x, y):
     """Find distance from character to closest bomb, normalized"""
@@ -57,11 +71,12 @@ def if_blocked(wrld, x, y):
     path = astar((x,y), exit_loc, wrld)
     idx = 0
     for pos in path:
-        idx += 1
+        #idx += 1
         if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
             if wrld.monsters_at(pos[0], pos[1]):
-                return 1.0 / (idx + 1)
-    
+                path = astar((x, y), pos, wrld, False)
+                return 1 / (path[len(path) - 1][1] + 1)
+
     return 0
 
 def m_to_bomb(wrld,x,y):
@@ -74,14 +89,14 @@ def m_to_bomb(wrld,x,y):
             if (m.x,m.y) in e_range:
                 return 1.0
     return 0
-        
+
 # def if_bomb_monster(wrld, x, y):
 #     exit_loc = find_exit(wrld)
 #     path = astar((x,y), exit_loc, wrld, False) #Astar to exit without minding walls
-#     if len(path) > 0: 
+#     if len(path) > 0:
 #         for pos in path:
 #             if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
-#                 if wrld.monsters_at(pos[0], pos[1]): # Check if wall or monster is in astar path 
+#                 if wrld.monsters_at(pos[0], pos[1]): # Check if wall or monster is in astar path
 #                     # Check if wall is in bomb radius if character places bomb
 #                     b_range = expl_radius(wrld, x, y)
 #                     if pos in b_range:
@@ -97,7 +112,7 @@ def if_bomb_wall(wrld, x, y):
     if len(path) > 0 and len(m) > 0: # If we have a path and there are monsters
         for pos in path:
             if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
-                if wrld.wall_at(pos[0], pos[1]): # Check if wall or monster is in astar path 
+                if wrld.wall_at(pos[0], pos[1]): # Check if wall or monster is in astar path
                     if pos in b_range:
                         return 1.0
 
@@ -116,8 +131,10 @@ def create_node(pos):
     """create a Node of a specific location"""
     return node.Node(pos)
 
-def get_heuristic(start, end):  # for now just compute distance
+def get_heuristic(start, end, wrld):  # for now just compute distance
     """return the heuristic value from start point to end point"""
+    if (wrld.wall_at(start[0] , start[1])):
+        return 2 * get_distance(start, end)
     return get_distance(start, end)  
 
 def get_distance(start, end):  # compute distance
@@ -133,10 +150,10 @@ def get_path(startNode, endNode):
     path = []
 
     while (not current == startNode):
-        path.insert(0, current.getNodePos())
+        path.insert(0, (current.getNodePos(), current.getCostSoFar()))
         current = current.getParent()
 
-    path.insert(0, startNode.getNodePos())
+    path.insert(0, (startNode.getNodePos(), startNode.getCostSoFar()))
     return path
 
 def get_neighbors(wrld,pos):
@@ -154,8 +171,14 @@ def get_neighbors(wrld,pos):
     
     return neighbor
         
-def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
+def astar(start, end, world,  ignoreWall = True):  # start (x,y) and end (x,y)
     """Apply Astar to find the closest path from start to end in world"""
+    #print(start)
+    if (start[0] >= 0) and (start[0] < world.width()) and (start[1] >= 0) and (start[1] < world.height()):
+        hi = 0
+    else:
+        #print("AHHHH")
+        return []
     startNode = create_node(start)
     endNode = create_node(end)
 
@@ -164,7 +187,7 @@ def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
 
     frontier = PriorityQueue()
     startNode.setCostSoFar(0)
-    startNode.setEstCost(get_heuristic(start, end))
+    startNode.setEstCost(get_heuristic(start, end, world))
     frontier.put(startNode)
     seenNeighbor[start] = startNode
     path = []
@@ -198,10 +221,15 @@ def astar(start, end, world, ignoreWall = True):  # start (x,y) and end (x,y)
                 if (cost < node.getCostSoFar()):
                     node.setParent(next)
                     node.setCostSoFar(cost)
-                    node.setEstCost(cost + get_heuristic(node.getNodePos(), endNode.getNodePos()))
+                    node.setEstCost(cost + get_heuristic(node.getNodePos(), endNode.getNodePos(), world))
                     frontier.put(node)
-
-    return path #return empty if we find no path
+    re_path = []
+    if (ignoreWall == False):
+        return path
+    else:
+        for step in path:
+            re_path.append(step[0])
+        return re_path #return empty if we find no path
 
 def find_closest_obj(wrld, objs, x, y):
     """find closest object to character"""
@@ -212,7 +240,7 @@ def find_closest_obj(wrld, objs, x, y):
     
     for o in objs:
         # Find distance from (x,y) to object
-        d1 = get_distance((x,y), (o.x, o.y)) 
+        d1 = get_distance((x,y), (o.x, o.y))
         d2 = get_distance((x,y), (closest_o.x, closest_o.y))
 
         # If d1 is closer than d2
@@ -235,7 +263,7 @@ def find_closest_monster(wrld, x, y):
         monster = iter(wrld.monsters.values())
         m1 = next(monster)[0]
         m2 = next(monster)[0]
-        m_pos_list = [(m1.x, m1.y), (m2.x, m2.y)]
+        m_pos_list = [m1, m2]
         m_closest = find_closest_obj(wrld, m_pos_list, x, y)
         if m_closest == m_pos_list[0]:
             m = m1 

@@ -36,8 +36,9 @@ for i in range(10):
 
             # Run!
             t.train(1)
+            maboi.update_weights(t.world, None)
             # t.train(1)
             with open('weights.csv', 'w') as csvfile:
-                w = csv.writer(csvfile)
+                w = csv.writer(csvfile, lineterminator='\n')
                 for k, v in maboi.weights.items():
                     w.writerow([k,v])
