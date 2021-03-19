@@ -99,7 +99,7 @@ class TestCharacter(CharacterEntity):
                     elif neighbor[0] - 1 == x and neighbor[1] + 1 == y:
                         return (neighbor[0]-x, neighbor[1]-y, True)
                     elif neighbor[0] + 1 == x and neighbor[1] - 1 == y:
-                        return (neighbor[0]-x neighbor[1]-y, True)
+                        return (neighbor[0]-x, neighbor[1]-y, True)
 
             path = self.pathfinding((x,y), next_best[0], wrld)
             print(path)
