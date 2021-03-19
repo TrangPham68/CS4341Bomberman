@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f057a2c5-4735-4657-a42d-c1a5e502c9a3" name="Default Changelist" comment="Alright variant 1 is done except for comments">
-      <change afterPath="$PROJECT_DIR$/group03/scenario1var2.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/group03/scenario2var1.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/csv-plugin.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/csv-plugin.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/group03/qlearning/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/qlearning/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/group03/scenario1/variant2.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/scenario1/variant2.py" afterDir="false" />
-    </list>
+    <list default="true" id="f057a2c5-4735-4657-a42d-c1a5e502c9a3" name="Default Changelist" comment="The beginings of monster targeting" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -119,7 +112,7 @@
       <workItem from="1615951456701" duration="299000" />
       <workItem from="1616029205730" duration="3311000" />
       <workItem from="1616039638674" duration="3071000" />
-      <workItem from="1616042748605" duration="32821000" />
+      <workItem from="1616042748605" duration="33310000" />
     </task>
     <task id="LOCAL-00001" summary="I think something is off with the features">
       <created>1615958798901</created>
@@ -205,7 +198,14 @@
       <option name="project" value="LOCAL" />
       <updated>1616183655486</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="The beginings of monster targeting">
+      <created>1616189098313</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1616189098313</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -247,10 +247,11 @@
     <MESSAGE value="HEY VARIANT 1" />
     <MESSAGE value="OK now" />
     <MESSAGE value="Alright variant 1 is done except for comments" />
-    <option name="LAST_COMMIT_MESSAGE" value="Alright variant 1 is done except for comments" />
+    <MESSAGE value="The beginings of monster targeting" />
+    <option name="LAST_COMMIT_MESSAGE" value="The beginings of monster targeting" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/CS4341Bomberman$Python3.coverage" NAME="Python3 Coverage Results" MODIFIED="1616181760465" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/.." />
+    <SUITE FILE_PATH="coverage/CS4341Bomberman$Python3.coverage" NAME="Python3 Coverage Results" MODIFIED="1616189567745" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/.." />
     <SUITE FILE_PATH="coverage/CS4341Bomberman$tournament1.coverage" NAME="tournament1 Coverage Results" MODIFIED="1615941591498" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/group03/scenario1" />
   </component>
 </project>
