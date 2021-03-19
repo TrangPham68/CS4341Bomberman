@@ -108,6 +108,9 @@ class TestCharacter(CharacterEntity):
 
         monster_distance = self.distance_to_monster(world, x, y)*7
         value -= monster_distance
+
+        if monster_distance == 0:
+            return ((x,y), -9999999)
         if monster_distance == 1:
             self.bomb_prob += 0.9
         elif monster_distance == 2:
