@@ -19,7 +19,7 @@ for i in range(10):
     for j in range(5):
         for k in range(20):
             # Create the game
-            with open('weights.csv') as csvfile:
+            with open('weights2.csv') as csvfile:
                 rd = csv.reader(csvfile)
                 weights = {rows[0]:float(rows[1]) for rows in rd}
 
@@ -38,7 +38,7 @@ for i in range(10):
             t.train(1)
             maboi.update_weights(t.world, None)
             # t.train(1)
-            with open('weights.csv', 'w') as csvfile:
+            with open('weights2.csv', 'w') as csvfile:
                 w = csv.writer(csvfile, lineterminator='\n')
                 for k, v in maboi.weights.items():
                     w.writerow([k,v])

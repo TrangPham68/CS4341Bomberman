@@ -18,9 +18,9 @@ from actions import Actions, Pos
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.3
+        self.learning_rate = 0.25
         self.discount_factor = 0.75
-        self.epsilon = 0.2
+        self.epsilon = 0.15
         self.weights = weights
         self.last_q = 0
         self.current_action = (0,0)
@@ -30,8 +30,8 @@ class QAgent(CharacterEntity):
     def do(self, wrld):
         # Find character
         c = wrld.me(self)
-        if self.last_q:
-            self.update_weights(wrld, c)
+        #if self.last_q:
+            #self.update_weights(wrld, c)
 
         action = self.get_action(wrld, c.x, c.y)
         #check if astar would be optimal instead
@@ -58,6 +58,7 @@ class QAgent(CharacterEntity):
             self.place_bomb()
 
         self.move(move[0], move[1])
+        self.update_weights(wrld, c)
 
 
     def get_legal_actions(self, wrld, curr_pos):
@@ -204,35 +205,40 @@ class QAgent(CharacterEntity):
         Loop over heuristics function and evaluate at current worldstate
         return sum of heuristics
         """
-        x, y = (pos[0] + action[0], pos[1] + action[1])
-        next_state, _ = wrld.next()
-
-        # If character can exit
-        if next_state.exit_at(x,y):
-            return 60
-        # If character will died due to explosion or monster
-        elif next_state.explosion_at(x,y) or wrld.monsters_at(x,y):
-            return -25
-        # If there is a bomb but it hasn't gone off yet
-        elif next_state.bomb_at(x,y):
-            return -15
+        # x, y = (pos[0] + action[0], pos[1] + action[1])
+        # next_state, _ = wrld.next()
+        #
+        # # If character can exit
+        # if next_state.exit_at(x,y):
+        #     return 60
+        # # If character will died due to explosion or monster
+        # elif next_state.explosion_at(x,y) or wrld.monsters_at(x,y):
+        #     return -25
+        # # If there is a bomb but it hasn't gone off yet
+        # elif next_state.bomb_at(x,y):
+        #     return -15
+        # else:
+        #     return -1 # Cost of living
+        x = pos[0]
+        y = pos[1]
+        r = 0
+        if wrld.exit_at(x, y):
+            return 100
+        elif wrld.bomb_at(x, y) or wrld.explosion_at(x, y) or wrld.monsters_at(x, y):
+            return -70
+        elif len(wrld.events) > 0:
+            for e in wrld.events:
+                if e.tpe == Event.BOMB_HIT_MONSTER:  # and not not wrld.me(self):
+                    r += 40
+                if e.tpe == Event.BOMB_HIT_WALL:  # and not not wrld.me(self):
+                    r += 5
+                if e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
+                    return wrld.scores[self.name] / 50
+                if e.tpe == Event.CHARACTER_FOUND_EXIT:
+                    return 2 * wrld.time / 50
         else:
-            return -1 # Cost of living
-
-        # if wrld.exit_at(x, y):
-        #     return 100
-        # elif wrld.bomb_at(x, y) or wrld.explosion_at(x, y) or wrld.monsters_at(x, y):
-        #     return -70
-        # elif len(wrld.events) > 0:
-        #     for e in wrld.events:
-        #         if e.tpe == Event.BOMB_HIT_MONSTER:  # and not not wrld.me(self):
-        #             r += 40
-        #         if e.tpe == Event.BOMB_HIT_WALL:  # and not not wrld.me(self):
-        #             r += 5
-        #         if e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
-        #             return wrld.scores[self.name] / 50
-        #         if e.tpe == Event.CHARACTER_FOUND_EXIT:
-        #             # return 2 * wrld.time / 50
+            r -= 1
+        return r
 
     def next_best_state(self, current_state, x, y, a):
         """Get the next best state's q value from a given position"""
@@ -253,15 +259,15 @@ class QAgent(CharacterEntity):
             currPos = self.last_pos
         else:
             currPos = (c.x, c.y)
-        reward = self.calc_rewards(current_state, currPos[0], currPos[1])
+        reward = self.calc_rewards(current_state, currPos, current_action)
         # print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))
         current_utility = self.q_value(current_state, current_action, currPos[0], currPos[1])
 
         # Get best action in next state
         if not c:
-            q = 0
+            q = 0 #game is done
         else:
-            q = self.next_best_state(current_state, currPos[0], currPos[1], current_action)
+            q = self.next_best_state(current_state, currPos[0],currPos[1], current_action)
 
         print("Reward;", reward, "Current utility:", current_utility)
 
@@ -269,7 +275,7 @@ class QAgent(CharacterEntity):
         delta = (reward + (self.discount_factor * q)) - current_utility
         
         # w = w + alpha * delta * f(s,a)
-        fvec = self.extract_features(current_state, c.x, c.y)
+        fvec = self.extract_features(current_state, currPos[0], currPos[1])
         for f in fvec: 
             self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
 

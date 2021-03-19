@@ -111,6 +111,7 @@ def if_bomb_wall(wrld, x, y):
     m = wrld.monsters.values()
     if len(path) > 0 and len(m) > 0: # If we have a path and there are monsters
         for pos in path:
+            pos = pos[0]
             if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
                 if wrld.wall_at(pos[0], pos[1]): # Check if wall or monster is in astar path
                     if pos in b_range:
