@@ -11,13 +11,14 @@ sys.path.insert(0, '../../group03/qlearning')
 from qlearner import QAgent
 from game import Game
 
-with open('../qlearning/weights.csv') as csvfile:
+#with open('../qlearning/weights.csv') as csvfile:
+with open('tourWeight.csv') as csvfile:
     rd = csv.reader(csvfile)
     weights = {rows[0]:float(rows[1]) for rows in rd}
 
 win = 0
 
-for i in range(5):
+for i in range(20):
     # Create the game
     random.seed(i) # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')

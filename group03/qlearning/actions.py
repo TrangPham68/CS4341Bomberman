@@ -12,9 +12,6 @@ class Pos(Enum):
     NW = (-1,-1)
     BOMB = (2,2)
 
-    def set_bomb_move(self, pos):
-        self.BOMB = pos
-
 
 class Actions(Enum):
     STAY = 0

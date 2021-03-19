@@ -28,8 +28,8 @@ def distance_to_monster(wrld, x, y):
     if length > 1:
         #print(path[length - 1][1])
         cost = path[length - 1][1]
-    #return 1 / ((0.5 * cost) ** 2 + 1)
-    return 1.0 / (cost + 1)
+    return 1 / ((0.5 * cost) ** 2 + 1)
+    #return 1.0 / (cost + 1)
 
 def distance_to_exit(wrld, x, y):
     """Find distance from character to exit, normalized"""
@@ -42,8 +42,8 @@ def distance_to_exit(wrld, x, y):
         cost = path[length-1][1]
     #return 1 / (0.6*length + 1)
 
-    #return 1 / (0.5 * cost + 1)
-    return 1.0 / (cost + 1)
+    return 1 / (0.5 * cost + 1)
+    #return 1.0 / (cost + 1)
 
 def bomb_radius(wrld, x, y):
     """Find distance from character to closest bomb, normalized"""
@@ -58,6 +58,7 @@ def bomb_radius(wrld, x, y):
     if len(bombs) > 0:
         b = bombs[0]
         e_range = expl_radius(wrld, b.x, b.y)
+        e_range.remove((b.x,b.y))
 
         # Penalize more if character in range and bomb is about to explode
         if (x,y) in e_range:
@@ -107,15 +108,19 @@ def m_to_bomb(wrld,x,y):
 def if_bomb_wall(wrld, x, y):
     exit_loc = find_exit(wrld)
     path = astar((x,y), exit_loc, wrld, False) #Astar to exit without minding walls
-    b_range = expl_radius(wrld, x, y)
-    m = wrld.monsters.values()
-    if len(path) > 0 and len(m) > 0: # If we have a path and there are monsters
+
+    if len(path) > 0: #and len(m) > 0: # If we have a path and there are monsters
+        b_range = expl_radius(wrld, x, y)
+        #print(b_range)
+        m = wrld.monsters.values()
         for pos in path:
             pos = pos[0]
             if (pos[0] >= 0) and (pos[0] < wrld.width()) and (pos[1] >= 0) and (pos[1] < wrld.height()):
                 if wrld.wall_at(pos[0], pos[1]): # Check if wall or monster is in astar path
                     if pos in b_range:
-                        return 1.0
+                        path = astar((x, y), pos, wrld, False)
+                        return 1 / (path[len(path) - 1][1] + 1)
+                        #return 1.0
 
     return 0
 
@@ -135,7 +140,7 @@ def create_node(pos):
 def get_heuristic(start, end, wrld):  # for now just compute distance
     """return the heuristic value from start point to end point"""
     if (wrld.wall_at(start[0] , start[1])):
-        return 2 * get_distance(start, end)
+        return 5 * get_distance(start, end)
     return get_distance(start, end)  
 
 def get_distance(start, end):  # compute distance
@@ -143,7 +148,8 @@ def get_distance(start, end):  # compute distance
     # return math.sqrt(math.pow(start[0] - end[0], 2) + math.pow(start[1] - end[1], 2))
     (x1,y1) = start[0], start[1]
     (x2,y2) = end[0], end[1]
-    return abs(x1 - x2) + abs(y1 -y2)
+    dist = abs(x1 - x2) + abs(y1 -y2)
+    return dist
 
 def get_path(startNode, endNode):
     """return the list of (x, y) point from start to end by backtracking parent node from end"""
@@ -218,6 +224,8 @@ def astar(start, end, world,  ignoreWall = True):  # start (x,y) and end (x,y)
                 if (next.getCostSoFar() == math.inf):
                     next.setCostSoFar(0)
                 cost = get_distance(next.getNodePos(), node.getNodePos()) + next.getCostSoFar()
+                # if (world.wall_at(next.getNodePos()[0], next.getNodePos()[1])):
+                #     cost = 1.5*cost
 
                 if (cost < node.getCostSoFar()):
                     node.setParent(next)
@@ -303,13 +311,25 @@ def find_blasts(wrld):
 def expl_radius(wrld, x, y):
     """Return radius of explosion given a bomb's location"""
     e_range = set()
+    wall_set = set()
 
     # Grab coordinates of explosion range
-    for dx in range(-wrld.expl_range, wrld.expl_range + 1):
+    for dx in range(-wrld.expl_range, wrld.expl_range+1):
+        dis = x+dx
         if (x + dx >= 0) and (x + dx < wrld.width()):
             e_range.add((x + dx, y))
-    for dy in range(-wrld.expl_range, wrld.expl_range + 1):
+            if wrld.wall_at(x + dx, y):
+                if dx > 0:
+                    break
+                else:
+                    dx = 0
+    for dy in range(-wrld.expl_range, wrld.expl_range+1 ):
         if (y + dy >= 0) and (y + dy < wrld.height()):
             e_range.add((x, y + dy))
+            if (wrld.wall_at(x, y + dy)):
+                if dy > 0:
+                    break
+                else:
+                    dy = 0
 
     return e_range

@@ -26,12 +26,13 @@ class QAgent(CharacterEntity):
         self.current_action = (0,0)
         self.current_pos = (0,0)
         self.last_pos = (0,0)
+        self.bombMove = (0,0)
 
     def do(self, wrld):
         # Find character
         c = wrld.me(self)
-        #if self.last_q:
-            #self.update_weights(wrld, c)
+        if self.last_q:
+            self.update_weights(wrld, c)
 
         action = self.get_action(wrld, c.x, c.y)
         #check if astar would be optimal instead
@@ -56,9 +57,10 @@ class QAgent(CharacterEntity):
         # Place bomb if bomb action is selected
         if action == "BOMB":
             self.place_bomb()
+            move = self.bombMove
 
         self.move(move[0], move[1])
-        self.update_weights(wrld, c)
+        #self.update_weights(wrld, c)
 
 
     def get_legal_actions(self, wrld, curr_pos):
@@ -72,7 +74,7 @@ class QAgent(CharacterEntity):
             dy = Pos[a].value[1]
 
             if a == "BOMB": # add bomb as an action
-                if len(wrld.bombs) > 0:
+                if len(wrld.bombs) > 0 or len(wrld.explosions) > 0:
                     continue
                 else:
                     actions.append(a)
@@ -86,23 +88,33 @@ class QAgent(CharacterEntity):
                         actions.append(a)
         return actions
 
-    def extract_features(self, wrld, x, y):
+    def extract_features(self, wrld, x, y, isBomb):
         """Returns a dictionary of calculated features"""
         features = {}
         features['dist_to_monsters'] = qf.distance_to_monster(wrld, x, y)
         features['dist_to_exit'] = qf.distance_to_exit(wrld, x, y)
         features['bomb_range'] = qf.bomb_radius(wrld, x, y)
-        features['m_to_bomb'] = qf.m_to_bomb(wrld,x,y)
-        features['if_bomb_w'] = qf.if_bomb_wall(wrld, x, y)
+
+        # features['m_to_bomb'] = qf.m_to_bomb(wrld, x, y)
+        # features['if_bomb_w'] = qf.if_bomb_wall(wrld, x, y)
+        if isBomb:
+            features['m_to_bomb'] = qf.m_to_bomb(wrld,x,y)
+            features['if_bomb_w'] = qf.if_bomb_wall(wrld, x, y)
+        else:
+            features['m_to_bomb'] = 0
+            features['if_bomb_w'] = 0
+
         # features['if_blocked'] = qf.if_blocked(wrld,x,y)
         return features
 
     def q_value(self, wrld, action, x, y):
         """Finds the qvalue of a state-action pair"""
         q = 0
+        isBomb = False
         if action == (2,2):
             action = (0,0)
-        fvec = self.extract_features(wrld, x + action[0], y + action[1])
+            isBomb = True
+        fvec = self.extract_features(wrld, x + action[0], y + action[1], isBomb)
         # print("FOR ACTION: ", action)
         for f in fvec: 
             # print("FEATURE: ", f, "| VALUE: ", fvec[f], "| WEIGHT:  ", self.weights[f])
@@ -130,14 +142,17 @@ class QAgent(CharacterEntity):
                 # If we want to place a bomb
                 if action == "BOMB":
                     wrld.me(self).place_bomb()
-                    next_state, events = wrld.next()
-                    # Find optimal character move assuming monster makes best move for self
-                    best_action = self.get_best_action(next_state, x, y)
-                    #q = self.q_value(next_state, a, x, y)
-                    q_table[best_action[0]] = best_action[1]
+                    # next_state, events = wrld.next()
+                    # # # Find optimal character move assuming monster makes best move for self
+                    # best_act= self.get_best_action(next_state, x, y)
+                    # # #q = self.q_value(next_state, a, x, y)
+                    # a = best_act[0]
+                    self.bombMove = (0,0)
+                    # q_table[action] = best_act[1]
                     continue # no movement needed
                 # Move character
-                wrld.me(self).move(a[0], a[1])
+                if not (action == "BOMB"):
+                    wrld.me(self).move(a[0], a[1])
 
                 # If there is a monster
                 if m:
@@ -156,10 +171,15 @@ class QAgent(CharacterEntity):
                     # Set monster move in Sensed World
                     m.move(m_best_step[0], m_best_step[1])
                     # Go to next state
-                    next_state, events = wrld.next()
-                    # Find optimal character move assuming monster makes best move for self
-                    q = self.q_value(next_state, a, x, y)
-                    q_table[action] = q
+                    # next_state, events = wrld.next()
+                    # # Find optimal character move assuming monster makes best move for self
+                    # q = self.q_value(next_state, a, x, y)
+                    # q_table[action] = q
+
+                next_state, events = wrld.next()
+                # Find optimal character move assuming monster makes best move for self
+                q = self.q_value(next_state, a, x, y)
+                q_table[action] = q
         
         # print("QTABLE: ", q_table)
         qtable = list(q_table.values())
@@ -168,6 +188,7 @@ class QAgent(CharacterEntity):
             for k,v in q_table.items():
                 if v == qmax:
                     best_action = k
+                    #break #get the first one
 
         return best_action, qmax
 
@@ -185,8 +206,7 @@ class QAgent(CharacterEntity):
                 best_act = self.get_best_action(wrld, x, y)
                 new_action = best_act[0]
                 new_pos = best_act[1]
-                if (new_action == "BOMB"):
-                    Actions.set_bomb_move(new_pos)
+
         return new_action
 
     def get_astar_action(self, wrld, x, y):
@@ -219,13 +239,13 @@ class QAgent(CharacterEntity):
         #     return -15
         # else:
         #     return -1 # Cost of living
-        x = pos[0]
-        y = pos[1]
+        x = pos[0] + action[0]
+        y = pos[1] + action[1]
         r = 0
         if wrld.exit_at(x, y):
             return 100
-        elif wrld.bomb_at(x, y) or wrld.explosion_at(x, y) or wrld.monsters_at(x, y):
-            return -70
+        # elif wrld.bomb_at(x, y) or wrld.explosion_at(x, y) or wrld.monsters_at(x, y):
+        #     return -60
         elif len(wrld.events) > 0:
             for e in wrld.events:
                 if e.tpe == Event.BOMB_HIT_MONSTER:  # and not not wrld.me(self):
@@ -233,9 +253,13 @@ class QAgent(CharacterEntity):
                 if e.tpe == Event.BOMB_HIT_WALL:  # and not not wrld.me(self):
                     r += 5
                 if e.tpe == Event.CHARACTER_KILLED_BY_MONSTER:
-                    return wrld.scores[self.name] / 50
+                    print ("hi")
+                    return -60
                 if e.tpe == Event.CHARACTER_FOUND_EXIT:
-                    return 2 * wrld.time / 50
+                    print("exit")
+                    return 100
+                if (action == "BOMB" and r == 0): #for wasting bomb
+                    r -= 5
         else:
             r -= 1
         return r
@@ -273,9 +297,11 @@ class QAgent(CharacterEntity):
 
         # delta = reward + v(max(a')(Q(s',a'))) - Q(s,a)
         delta = (reward + (self.discount_factor * q)) - current_utility
-        
+        isBomb = False
+        if current_action == "BOMB":
+            isBomb = True
         # w = w + alpha * delta * f(s,a)
-        fvec = self.extract_features(current_state, currPos[0], currPos[1])
+        fvec = self.extract_features(current_state, currPos[0], currPos[1], isBomb)
         for f in fvec: 
             self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
 

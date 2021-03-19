@@ -9,7 +9,7 @@ expl_range 4
 |        |
 |        |
 |        |
-|  WWWW  |
+|WWWWWWWW|
 |        |
 |        |
 |        |

@@ -19,12 +19,12 @@ sys.path.insert(1, '../groupNN')
 # Create the game
 
 
-with open('../qlearning/weights.csv') as csvfile:
+with open('tourWeight.csv') as csvfile:
     rd = csv.reader(csvfile)
     weights = {rows[0]: float(rows[1]) for rows in rd}
 
 win =0
-for i in range(100):
+for i in range(20):
     random.seed(i)  # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
     g.add_monster(StupidMonster("stupid", # name
