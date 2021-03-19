@@ -18,7 +18,7 @@ from actions import Actions, Pos
 class QAgent(CharacterEntity):
     def __init__(self, name, player, x, y, weights):
         CharacterEntity.__init__(self, name, player, x, y) 
-        self.learning_rate = 0.4
+        self.learning_rate = 0.2
         self.discount_factor = 0.8
         self.epsilon = 0.15
         self.weights = weights
