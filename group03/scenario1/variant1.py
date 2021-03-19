@@ -13,13 +13,13 @@ from game import Game
 sys.path.insert(1, '../group03')
 
 # Uncomment this if you want the empty test character
-from testcharacter import TestCharacter
+from scenario1var1 import TestCharacter
 
 # Uncomment this if you want the interactive character
 from interactivecharacter import InteractiveCharacter
 
 # Create the game
-g = Game.fromfile('map.txt')
+g = Game.fromfile('map2.txt')
 
 # TODO Add your character
 
@@ -42,4 +42,4 @@ g.add_character(TestCharacter("me", # name
 
 # Use this if you want to proceed automatically
 
-g.go(1)
+g.go(600)

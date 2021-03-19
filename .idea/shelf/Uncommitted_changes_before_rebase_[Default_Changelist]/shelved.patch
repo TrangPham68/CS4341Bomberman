@@ -1,0 +1,93 @@
+Index: group03/qlearning/train.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># This is necessary to find the main code\r\nimport sys\r\nsys.path.insert(0, '../../bomberman')\r\nsys.path.insert(1, '..')\r\n\r\n# Import necessary stuff\r\nimport random\r\nimport csv\r\nfrom game import Train, Game\r\nfrom monsters.selfpreserving_monster import SelfPreservingMonster\r\n\r\n# TODO This is your code!\r\nsys.path.insert(1, '../group03/qlearning')\r\nfrom qlearner import QAgent\r\n\r\nmaps = ['training_maps/1.txt','training_maps/2.txt','training_maps/3.txt','training_maps/4.txt','training_maps/5.txt']\r\n\r\nfor i in range(5):\r\n    for j in range(5):\r\n        for k in range(100):\r\n            # Create the game\r\n            with open('weights.csv') as csvfile:\r\n                rd = csv.reader(csvfile)\r\n                weights = {rows[0]:float(rows[1]) for rows in rd}\r\n\r\n            t = Train.fromfile(maps[j])\r\n            t.add_monster(SelfPreservingMonster(\"aggressive\", # name\r\n                                                \"A\",          # avatar\r\n                                                4, 7,        # position\r\n                                                2             # detection range\r\n            ))\r\n\r\n            # TODO Add your character\r\n            maboi = QAgent(\"me\", \"C\", 0, 0, weights)\r\n            t.add_character(maboi)\r\n\r\n            # Run!\r\n            t.train(1)\r\n            # t.train(1)\r\n            with open('weights.csv', 'w') as csvfile:\r\n                w = csv.writer(csvfile)\r\n                for k, v in maboi.weights.items():\r\n                    w.writerow([k,v])
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/qlearning/train.py b/group03/qlearning/train.py
+--- a/group03/qlearning/train.py	(revision 0beaa8a3c5c3600041b9f0e49d282041edfc1327)
++++ b/group03/qlearning/train.py	(date 1616023774910)
+@@ -37,7 +37,7 @@
+             # Run!
+             t.train(1)
+             # t.train(1)
+-            with open('weights.csv', 'w') as csvfile:
++            with open('weights.csv', 'w', newline='') as csvfile:
+                 w = csv.writer(csvfile)
+                 for k, v in maboi.weights.items():
+                     w.writerow([k,v])
+\ No newline at end of file
+Index: group03/qlearning/weights.csv
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>dist_to_monsters,-1.7227558392870137\r\ndist_to_exit,-0.7850377586591483\r\nbomb_range,10.144481860507856\r\nblocked,-10.450355353668224\r\nif_bomb,-6.798195451679056\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/qlearning/weights.csv b/group03/qlearning/weights.csv
+--- a/group03/qlearning/weights.csv	(revision 0beaa8a3c5c3600041b9f0e49d282041edfc1327)
++++ b/group03/qlearning/weights.csv	(date 1616023788437)
+@@ -1,5 +1,5 @@
+-dist_to_monsters,-1.7227558392870137
+-dist_to_exit,-0.7850377586591483
+-bomb_range,10.144481860507856
+-blocked,-10.450355353668224
+-if_bomb,-6.798195451679056
++dist_to_monsters,195.4257970124138
++dist_to_exit,-4729.105926682853
++bomb_range,2141.87192870071
++blocked,790.1174193786766
++if_bomb,-1053.840327906024
+Index: group03/qlearning/qlearner.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># This is necessary to find the main code\r\nimport math\r\nimport sys\r\nimport random \r\n\r\nsys.path.insert(0, '../bomberman')\r\n# Import necessary stuff\r\nfrom entity import CharacterEntity\r\nfrom colorama import Fore, Back\r\nfrom sensed_world import SensedWorld\r\nfrom events import Event \r\n\r\nsys.path.insert(1, '../bomberman/group03')\r\nimport qfunctions as qf\r\nfrom actions import Actions, Pos\r\n\r\n# Main Q Learning Agent \r\nclass QAgent(CharacterEntity):\r\n    def __init__(self, name, player, x, y, weights):\r\n        CharacterEntity.__init__(self, name, player, x, y) \r\n        self.learning_rate = 0.3\r\n        self.discount_factor = 0.8\r\n        self.epsilon = 0.25\r\n        self.weights = weights\r\n        self.last_q = 0\r\n        self.current_action = (0,0)\r\n        self.current_pos = (0,0)\r\n        self.last_pos = (0,0)\r\n        self.win = 0\r\n\r\n    def do(self, wrld):\r\n        # Find character\r\n        c = wrld.me(self)\r\n        if self.last_q:\r\n            self.update_weights(wrld, c)\r\n\r\n        action = self.get_action(wrld, c.x, c.y)\r\n        move = Pos[action].value\r\n\r\n        self.current_action = move\r\n        self.last_q = self.q_value(wrld, self.current_action, c.x, c.y)\r\n        self.last_pos = (c.x, c.y)\r\n        self.current_pos = (c.x + move[0], c.y + move[1])\r\n\r\n        # Place bomb if bomb action is selected\r\n        if action == \"BOMB\":\r\n            self.place_bomb()\r\n\r\n        self.move(move[0], move[1])\r\n\r\n\r\n    def get_legal_actions(self, wrld, curr_pos):\r\n        \"\"\"Returns all possible actions given a position\"\"\"\r\n        x, y = (curr_pos[0], curr_pos[1])\r\n        actions = []\r\n\r\n        for i in range(10):\r\n            a = Actions(i).name\r\n            dx = Pos[a].value[0]\r\n            dy = Pos[a].value[1]\r\n            if (x + dx >= 0) and (x + dx < wrld.width()):\r\n                if (y + dy >= 0) and (y + dy < wrld.height()):\r\n                    if not wrld.wall_at(x + dx, y + dy) and not wrld.bomb_at(x + dx, y + dy) and not wrld.explosion_at(x + dx, y + dy):\r\n                        if a == \"BOMB\" and len(wrld.bombs) > 0:\r\n                            continue\r\n                        actions.append(a)\r\n        return actions\r\n\r\n    def extract_features(self, wrld, x, y):\r\n        \"\"\"Returns a dictionary of calculated features\"\"\"\r\n        features = {}\r\n        features['dist_to_monsters'] = qf.distance_to_monster(wrld, x, y)\r\n        features['dist_to_exit'] = qf.distance_to_exit(wrld, x, y)\r\n        features['bomb_range'] = qf.bomb_radius(wrld, x, y)\r\n        features['blocked'] = qf.if_blocked(wrld,x,y)\r\n        features['if_bomb'] = qf.if_bomb(wrld, x, y)\r\n        return features\r\n\r\n    def q_value(self, wrld, action, x, y):\r\n        \"\"\"Finds the qvalue of a state-action pair\"\"\"\r\n        q = 0 \r\n        fvec = self.extract_features(wrld, x + action[0], y + action[1]) \r\n        # print(\"FVEC: \", fvec)\r\n        for f in fvec: \r\n            q += self.weights[f] * fvec[f] \r\n        return q\r\n\r\n    def get_best_action(self,wrld,x,y):\r\n        \"\"\"\r\n        Calculate the best action for character taking into account monster\r\n        makes optimal moves with limited visibility.\r\n        Returns best action and Q(s,a) as a tuple \r\n        \"\"\"\r\n        best_action = \"STAY\"\r\n        qmax = 0\r\n        m = qf.find_closest_monster(wrld, x, y)\r\n        q_table = {}\r\n        \r\n        #Iterate through possible character moves\r\n        legal_a = self.get_legal_actions(wrld,(x,y))\r\n        \r\n        for action in legal_a:\r\n            # If character is still alive\r\n            if wrld.me(self):\r\n                a = Pos[action].value\r\n                # If we want to place a bomb\r\n                if action == \"BOMB\":\r\n                    wrld.me(self).place_bomb()\r\n                # Move character\r\n                wrld.me(self).move(a[0], a[1])\r\n\r\n                # If there is a monster\r\n                if m:\r\n                    # Assume monster has limited visibility\r\n                    m_loc = (m.x, m.y)\r\n                    m_best_step = (0,0)\r\n\r\n                    # Find optimal monster move\r\n                    path = qf.astar(m_loc, (x + a[0], y + a[1]), wrld)\r\n                    \r\n                    if len(path) > 1:\r\n                        next_pos = path[1]\r\n                        m_best_step = (next_pos[0] - m.x, next_pos[1] - m.y)\r\n                    \r\n                    # Set monster move in Sensed World\r\n                    m.move(m_best_step[0], m_best_step[1])\r\n                    # Go to next state\r\n                    next_state, events = wrld.next()\r\n                    # Find optimal character move assuming monster makes best move for self\r\n                    q = self.q_value(next_state, a, x, y)\r\n                    q_table[action] = q\r\n        \r\n        qtable = list(q_table.values())\r\n        if len(qtable) > 0:\r\n            qmax = max(qtable)\r\n            for k,v in q_table.items():\r\n                if v == qmax:\r\n                    best_action = k\r\n\r\n        return best_action, qmax\r\n\r\n    def get_action(self, wrld, x, y):\r\n        \"\"\"Take action with epsilon-greedy implementation\"\"\"\r\n        new_action = \"STAY\"\r\n\r\n        legal_a = self.get_legal_actions(wrld, (x,y))\r\n        # Generate random number\r\n        r = random.random()\r\n        if len(legal_a) > 0:\r\n            if (r < self.epsilon):\r\n                new_action = random.choice(legal_a)\r\n            else:\r\n                new_action = self.get_best_action(wrld, x, y)[0]\r\n        return new_action \r\n    \r\n    def eval_state(self, wrld, curr_pos):\r\n        # If no events,  evaluate state based on ratio between distance to monster and exit\r\n        x, y = curr_pos[0], curr_pos[1]\r\n        \r\n        exit_loc = qf.find_exit(wrld) \r\n        exit_path = qf.astar((x,y), exit_loc, wrld)\r\n        exit_length = len(exit_path) \r\n\r\n        m = qf.find_closest_monster(wrld, x, y)\r\n\r\n        if not m: # If there is no monster\r\n            return 0 \r\n\r\n        m_path = qf.astar((x,y), (m.x, m.y), wrld)\r\n        m_length = len(m_path) \r\n\r\n        return (1/(exit_length + 1)) - (1/(m_length + 1))\r\n\r\n    def calc_rewards(self, wrld, x, y):\r\n        \"\"\"\r\n        Loop over heuristics function and evaluate at current worldstate\r\n        return sum of heuristics\r\n        \"\"\"\r\n        r = 0\r\n        if wrld.exit_at(x,y):\r\n            return 100\r\n        elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):\r\n            return -50\r\n        elif len(wrld.events) > 0:\r\n            for e in wrld.events:\r\n                if e.tpe == Event.BOMB_HIT_MONSTER and wrld.me(self) is not None:\r\n                    r += 5\r\n        else:\r\n            r -= 1\r\n        return r\r\n\r\n    def next_best_state(self, current_state, x, y, a):\r\n        \"\"\"Get the next best state's q value from a given position\"\"\"\r\n        next_pos = (x + a[0], y + a[1])  # Where character is located in next state\r\n        current_state.me(self).move(a[0],a[1]) # Move character in the sensed world \r\n        next_state, events = current_state.next()\r\n        next_action, q = self.get_best_action(next_state, next_pos[0], next_pos[1]) # Get best move in this state  \r\n\r\n        return q\r\n        \r\n    def update_weights(self, current_state, c):\r\n        \"\"\"Update the weights for Q(s,a)\"\"\"\r\n        # print(\"\\n===========================\")\r\n        # print(\"UPDATING WEIGHTS:\")\r\n        current_action = self.current_action\r\n        # print(\"Current action: \", current_action)\r\n        reward = self.calc_rewards(current_state, c.x, c.y)\r\n        # print(current_state.monsters_at(self.current_pos[0],self.current_pos[1]))\r\n        current_utility = self.q_value(current_state, current_action, c.x, c.y)\r\n\r\n        # Get best action in next state\r\n        q = self.next_best_state(current_state, c.x, c.y, current_action)\r\n       \r\n        # print(\"Reward;\", reward, \"Current utility:\", current_utility)\r\n\r\n        # delta = reward + v(max(a')(Q(s',a'))) - Q(s,a)\r\n        delta = (reward + (self.discount_factor * q)) - current_utility\r\n        \r\n        # w = w + alpha * delta * f(s,a)\r\n        fvec = self.extract_features(current_state, c.x, c.y)\r\n        for f in fvec: \r\n            self.weights[f] = self.weights[f] + self.learning_rate  * delta * fvec[f]
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/group03/qlearning/qlearner.py b/group03/qlearning/qlearner.py
+--- a/group03/qlearning/qlearner.py	(revision 0beaa8a3c5c3600041b9f0e49d282041edfc1327)
++++ b/group03/qlearning/qlearner.py	(date 1616023774883)
+@@ -18,7 +18,7 @@
+ class QAgent(CharacterEntity):
+     def __init__(self, name, player, x, y, weights):
+         CharacterEntity.__init__(self, name, player, x, y) 
+-        self.learning_rate = 0.3
++        self.learning_rate = 0.1
+         self.discount_factor = 0.8
+         self.epsilon = 0.25
+         self.weights = weights
+@@ -43,8 +43,8 @@
+         self.current_pos = (c.x + move[0], c.y + move[1])
+ 
+         # Place bomb if bomb action is selected
+-        if action == "BOMB":
+-            self.place_bomb()
++        # if action == "BOMB":
++            # self.place_bomb()
+ 
+         self.move(move[0], move[1])
+ 
+@@ -178,15 +178,17 @@
+         """
+         r = 0
+         if wrld.exit_at(x,y):
+-            return 100
++            return 1000
+         elif wrld.bomb_at(x,y) or wrld.explosion_at(x,y) or wrld.monsters_at(x,y):
+-            return -50
++            return -5000
++        elif wrld.me(self) is None:
++            return -5000
+         elif len(wrld.events) > 0:
+             for e in wrld.events:
+                 if e.tpe == Event.BOMB_HIT_MONSTER and wrld.me(self) is not None:
+-                    r += 5
++                    r += 50
+         else:
+-            r -= 1
++            r += 1
+         return r
+ 
+     def next_best_state(self, current_state, x, y, a):
