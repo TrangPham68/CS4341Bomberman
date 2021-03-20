@@ -176,17 +176,6 @@ class ExpectimaxCharacter(CharacterEntity):
 
         for point in free:
             monster_pos = self.find_monsters(world)
-            character_pos = self.find_characters(world)
-
-            character_to = set()
-            for char in character_pos:
-                pathway = self.pathfinding((x,y), char, world)
-                if len(pathway) > 0 and len(pathway) < 4:
-                    character_to.add((char))
-
-            for monster in possible_monster:
-                if self.get_distance((x,y), monster) < 3:
-
             possible_monster = self.get_neighbors(monster_pos[0], world)
             freemon = []
 
@@ -196,13 +185,13 @@ class ExpectimaxCharacter(CharacterEntity):
 
             for point_2 in freemon:
 
-                monster_exp = self.expectimax(world.next()[0], point[0], point[1], depth+1, time-1)
-                self.bomb_prob = self.bomb_prob * 0.3
+                world.update_monster_move(world.monsters_at(x,y))
+                world.update_character_move()
 
-                world.grid[x][y] = True
-                world.grid[point_2[0]][point_2[1]] = False
-                world.grid[x][y] = True
-                world.grid[point[0]][point[1]] = False
+                (world2, events) = world.next()
+
+                monster_exp = self.expectimax(world2, point[0], point[1], depth+1, time-1)
+                self.bomb_prob = self.bomb_prob * 0.3
 
                 if monster_exp[0][0] != -1 and monster_exp[0][1] != -1:
                     monster_val += monster_exp[1]

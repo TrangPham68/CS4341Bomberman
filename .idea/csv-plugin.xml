@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\group03\patient.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\group03\qlearning\qfunctions.py">
           <value>
             <Attribute>

@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f057a2c5-4735-4657-a42d-c1a5e502c9a3" name="Default Changelist" comment="I should probably save">
+    <list default="true" id="f057a2c5-4735-4657-a42d-c1a5e502c9a3" name="Default Changelist" comment="Bro this definity doesn't work but I don't want to do it anymore">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/group03/scenario1/variant1.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/scenario1/variant1.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/group03/scenario1var1.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/patient.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/group03/scenario1var2.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/scenario1var2.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -116,7 +119,8 @@
       <workItem from="1616039638674" duration="3071000" />
       <workItem from="1616042748605" duration="33370000" />
       <workItem from="1616189676118" duration="457000" />
-      <workItem from="1616190151169" duration="16514000" />
+      <workItem from="1616190151169" duration="16730000" />
+      <workItem from="1616207861589" duration="1200000" />
     </task>
     <task id="LOCAL-00001" summary="I think something is off with the features">
       <created>1615958798901</created>
@@ -244,7 +248,14 @@
       <option name="project" value="LOCAL" />
       <updated>1616205383279</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Bro this definity doesn't work but I don't want to do it anymore">
+      <created>1616207010149</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1616207010149</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -291,7 +302,8 @@
     <MESSAGE value="Ok so it attacks kinda" />
     <MESSAGE value="Ok so it runs well enough not great but oh well" />
     <MESSAGE value="I should probably save" />
-    <option name="LAST_COMMIT_MESSAGE" value="I should probably save" />
+    <MESSAGE value="Bro this definity doesn't work but I don't want to do it anymore" />
+    <option name="LAST_COMMIT_MESSAGE" value="Bro this definity doesn't work but I don't want to do it anymore" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/CS4341Bomberman$Python3.coverage" NAME="Python3 Coverage Results" MODIFIED="1616189567745" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/.." />

@@ -6,6 +6,7 @@ from queue import PriorityQueue
 import node
 
 sys.path.insert(0, '../bomberman')
+
 # Import necessary stuff
 from entity import CharacterEntity
 from colorama import Fore, Back
@@ -15,7 +16,6 @@ class AStarCharacter(CharacterEntity):
         CharacterEntity.__init__(self, name, player, x, y)
         self.next_nodes = []
         self.visited = set()
-
 
 
     def do(self, wrld):
@@ -69,20 +69,18 @@ class AStarCharacter(CharacterEntity):
         #Check if any of the neighbors are in the path
 
         for neighbor in neighbors:
-            print(neighbor)
-            print(neighbors)
+
+            #Avoid other characters
             danger = False
             for secnd_neighbor in self.get_neighbors(neighbor, wrld):
                 if secnd_neighbor == (x,y):
                     continue
                 if world.characters_at(secnd_neighbor[0],secnd_neighbor[1]):
                     danger = True
-                    print(secnd_neighbor)
                     break
             if danger or world.characters_at(neighbor[0],neighbor[1]):
-                print(secnd_neighbor)
                 continue
-            print(secnd_neighbor)
+
             for point in path:
                 if neighbor[0] == point[0] and neighbor[1] == point[1]:
                     #If it is a bomb or an explosion, stay where you are
@@ -105,10 +103,13 @@ class AStarCharacter(CharacterEntity):
             next_y = y-character[1]
         else:
             next_y = (y-character[1])/abs(y-character[1])
+
+        #If there is nowhere closer to the exit to go, back up from ther other character
         return (next_x, next_y, False)
 
+
     def closest_accessable_character(self, wrld, x, y):
-        """return the closest character"""
+        """Return the closest character by path"""
 
         chars = self.find_characters(wrld)
 
@@ -119,6 +120,8 @@ class AStarCharacter(CharacterEntity):
         closest_c_path = []
 
         check_neighbors = set()
+
+        #For every character find the one with the shortest path to us
         for char in chars:
             path_to_char = self.pathfinding((x, y), char, wrld)
             if char[0] == x and char[1] == y:
