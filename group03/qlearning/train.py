@@ -18,12 +18,13 @@ maps = ['training_maps/1.txt','training_maps/2.txt','training_maps/3.txt','train
 winTrial = []
 winRate = []
 winCount = 0
-for i in range(1): #5
+for i in range(2): #5
     for j in range(1): #5
         winCount = 0
-        for k in range(500): #20
+        for k in range(50): #20
+            random.seed(k*(i+1))
             # Create the game
-            with open('weights4.csv') as csvfile:
+            with open('weights2.csv') as csvfile:
                 rd = csv.reader(csvfile)
                 weights = {rows[0]:float(rows[1]) for rows in rd}
 
@@ -31,10 +32,10 @@ for i in range(1): #5
             if i % 2 == 0:
                 t.add_monster(SelfPreservingMonster("aggressive", # name
                                                     "A",          # avatar
-                                                    4, 7,        # position
+                                                    3, 13,        # position
                                                     2             # detection range
                 ))
-            else:
+            elif i%2 == 1:
                 t.add_monster(StupidMonster("stupid",  # name
                                         "S",  # avatar
                                         3, 9  # position
@@ -46,12 +47,12 @@ for i in range(1): #5
 
             # Run!
             t.train(1)
-            maboi.update_weights(t.world, None)
+            if maboi.lastReward != -100 and maboi.lastReward != -60:
+                maboi.update_weights(t.world, None)
 
             if t.done() and t.world.scores["me"] > 0:
                 winCount += 1
-            # t.train(1)
-            with open('weights4.csv', 'w') as csvfile:
+            with open('weights2.csv', 'w') as csvfile:
                 w = csv.writer(csvfile, lineterminator='\n')
                 for k, v in maboi.weights.items():
                     w.writerow([k,v])

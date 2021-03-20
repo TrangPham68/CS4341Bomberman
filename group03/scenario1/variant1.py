@@ -11,7 +11,7 @@ sys.path.insert(0, '../../group03/qlearning')
 from qlearner import QAgent
 from game import Game
 
-with open('../qlearning/weights5.csv') as csvfile:
+with open('tourWeight.csv') as csvfile:
     rd = csv.reader(csvfile)
     weights = {rows[0]:float(rows[1]) for rows in rd}
 

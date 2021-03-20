@@ -13,16 +13,16 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 sys.path.insert(0, '../../group03/qlearning')
 from qlearner import QAgent
 
-with open('tourWeight.csv') as csvfile:
+with open('w3.csv') as csvfile:
     rd = csv.reader(csvfile)
     weights = {rows[0]:float(rows[1]) for rows in rd}
 
 
 win = 0
 
-for i in range(20):
+for i in range(10):
     # Create the game
-    random.seed(i) # TODO Change this if you want different random choices
+    random.seed(3*i) # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
     g.add_monster(SelfPreservingMonster("selfpreserving", # name
                                         "S",              # avatar
