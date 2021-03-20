@@ -19,6 +19,8 @@ class AStarCharacter(CharacterEntity):
 
 
     def do(self, wrld):
+        self.next_nodes = []
+        self.visited = set()
         maxresult = self.get_best(wrld, self.x, self.y)
         if maxresult[2]:
             self.place_bomb()
@@ -30,6 +32,7 @@ class AStarCharacter(CharacterEntity):
 
         #Create a sensed world
         world = wrld.from_world(wrld)
+        (world, event) = world.next()
 
         #If you are on the exit, exit the map
         if (x,y)==self.find_exit(world):
@@ -261,7 +264,6 @@ class AStarCharacter(CharacterEntity):
             current = current.getParent()
 
         path.insert(0, startNode.getNodePos())
-        # print(path)
         return path
 
 
