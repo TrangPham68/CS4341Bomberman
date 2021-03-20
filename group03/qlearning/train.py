@@ -10,7 +10,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 from monsters.stupid_monster import StupidMonster
 from game import Game
 from testcharacter import TestCharacter
-from scenario2var1 import AStarCharacter
+from scenario1var1 import AStarCharacter
 from interactivecharacter import InteractiveCharacter
 
 # TODO This is your code!

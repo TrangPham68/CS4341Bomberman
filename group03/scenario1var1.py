@@ -52,6 +52,8 @@ class AStarCharacter(CharacterEntity):
             #If you have reached that closest point, place a bomb and head to a diagonal neighbor
             if next_best[0][0] == x and next_best[0][1] == y:
                 for neighbor in neighbors:
+                    if world.characters_at(neighbor[0], neighbor[1]):
+                        continue
                     if neighbor[0] - 1 == x and neighbor[1] - 1 == y:
                         return (neighbor[0]-x, neighbor[1]-y, True)
                     elif neighbor[0] + 1 == x and neighbor[1] + 1 == y:
@@ -65,7 +67,22 @@ class AStarCharacter(CharacterEntity):
             path = self.pathfinding((x,y), next_best[0], wrld)
 
         #Check if any of the neighbors are in the path
+
         for neighbor in neighbors:
+            print(neighbor)
+            print(neighbors)
+            danger = False
+            for secnd_neighbor in self.get_neighbors(neighbor, wrld):
+                if secnd_neighbor == (x,y):
+                    continue
+                if world.characters_at(secnd_neighbor[0],secnd_neighbor[1]):
+                    danger = True
+                    print(secnd_neighbor)
+                    break
+            if danger or world.characters_at(neighbor[0],neighbor[1]):
+                print(secnd_neighbor)
+                continue
+            print(secnd_neighbor)
             for point in path:
                 if neighbor[0] == point[0] and neighbor[1] == point[1]:
                     #If it is a bomb or an explosion, stay where you are
@@ -76,6 +93,57 @@ class AStarCharacter(CharacterEntity):
                     #Go there
                     return (neighbor[0]-x, neighbor[1]-y, False)
 
+        character = self.closest_accessable_character(wrld,x,y)
+
+        next_x = 0
+        next_y = 0
+        if x-character[0] == 0:
+            next_x = x-character[0]
+        else:
+            next_x = (x-character[0])/abs(x-character[0])
+        if y-character[1] == 0:
+            next_y = y-character[1]
+        else:
+            next_y = (y-character[1])/abs(y-character[1])
+        return (next_x, next_y, False)
+
+    def closest_accessable_character(self, wrld, x, y):
+        """return the closest character"""
+
+        chars = self.find_characters(wrld)
+
+        if len(chars) == 0:
+            return 0
+
+        closest_c = (-1,-1)
+        closest_c_path = []
+
+        check_neighbors = set()
+        for char in chars:
+            path_to_char = self.pathfinding((x, y), char, wrld)
+            if char[0] == x and char[1] == y:
+                continue
+            elif len(path_to_char) == 0:
+                check_neighbors.append(char)
+            elif len(closest_c_path) == 0:
+                closest_c = char
+                closest_c_path = self.pathfinding((x, y), char, wrld)
+            elif len(path_to_char) < len(closest_c_path):
+                closest_c = char
+                closest_c_path = self.pathfinding((x, y), char, wrld)
+
+        return closest_c
+
+    def find_characters(self,wrld):
+        """finds position of nearest character in world"""
+        characters = []
+
+        for x in range(wrld.width()):
+            for y in range(wrld.height()):
+                if wrld.characters_at(x,y):
+                    characters.append((x,y))
+
+        return characters
 
     def find_next_best(self, x, y, target, world, path):
         """Find the next best space to an inaccessable target space"""
