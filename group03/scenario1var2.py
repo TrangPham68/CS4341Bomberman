@@ -119,10 +119,6 @@ class ExpectimaxCharacter(CharacterEntity):
 
         #If unreachable, get the path to as close as you can
         if len(path) == 0:
-            if len(self.find_bombs(world)) > 0:
-               if self.distance_to_monster(world, x, y) > 3:
-                   return((x,y), 0)
-               path = {}
 
             #Find the space that is as close as you can get
             self.next_nodes.append(world.exitcell)
@@ -168,6 +164,7 @@ class ExpectimaxCharacter(CharacterEntity):
         #Calculate utility of current
         utility = 5/(len(path))**2
         utility -= 1/(monster_distance**3)
+        utility -= 1 / (character_distance ** 3)
         utility -= (bomb_distance * (0.05) - bomb_danger*(0.5))
 
         #Calculate the basic utility of this choice
@@ -175,17 +172,23 @@ class ExpectimaxCharacter(CharacterEntity):
             return ((x, y), utility)
 
         max_pt = (-1,-1)
-        max_val = -99999999999
+        max_val = -999999999
 
         for point in free:
             monster_pos = self.find_monsters(world)
+            character_pos = self.find_characters(world)
+
+            character_to = set()
+            for char in character_pos:
+                pathway = self.pathfinding((x,y), char, world)
+                if len(pathway) > 0 and len(pathway) < 4:
+                    character_to.add((char))
+
+            for monster in possible_monster:
+                if self.get_distance((x,y), monster) < 3:
+
             possible_monster = self.get_neighbors(monster_pos[0], world)
             freemon = []
-
-            for pt in possible_monster:
-                if world.grid[pt[0]][pt[1]] == False:
-                    freemon.append(pt)
-
 
             monster_val = 0
             monster_sum = 0
@@ -347,6 +350,17 @@ class ExpectimaxCharacter(CharacterEntity):
                     bombs.append((x, y))
 
         return bombs
+
+    def find_characters(self,wrld):
+        """finds position of nearest character in world"""
+        characters = []
+
+        for x in range(wrld.width()):
+            for y in range(wrld.height()):
+                if wrld.characters_at(x,y):
+                    characters.append((x,y))
+
+        return characters
 
     #These are our features I think
     def distance_to_monster(self, wrld, x, y):
