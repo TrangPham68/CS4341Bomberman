@@ -10,7 +10,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 from monsters.stupid_monster import StupidMonster
 from game import Game
 from testcharacter import TestCharacter
-from scenario1var1 import AStarCharacter
+from scenario1var2 import ExpectimaxCharacter
 from interactivecharacter import InteractiveCharacter
 
 # TODO This is your code!
@@ -28,16 +28,16 @@ for m in range(5):
         #                                     2             # detection range
         # ))
 
-        # g.add_monster(StupidMonster("stupid", # name
-        #                             "S",      # avatar
-        #                             1, 6      # position
-        # ))
+        g.add_monster(StupidMonster("stupid", # name
+                                    "S",      # avatar
+                                    1, 6      # position
+        ))
 
-        g.add_character(AStarCharacter("me",  # name
+        g.add_character(ExpectimaxCharacter("me",  # name
                                       "C",  # avatar
                                       0, 0  # position
                                       ))
 
-        g.add_character(InteractiveCharacter("THEM", "C", 4,4))
+        # g.add_character(InteractiveCharacter("THEM", "C", 4,4))
         # Run!
-        g.go(1)
+        g.go(600)
