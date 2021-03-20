@@ -6,7 +6,6 @@ import random
 sys.path.insert(0, '../../bomberman')
 sys.path.insert(1, '..')
 
-# TODO This is your code!
 sys.path.insert(0, '../../group03/qlearning')
 from qlearner import QAgent
 from game import Game

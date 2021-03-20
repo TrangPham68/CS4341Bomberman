@@ -12,9 +12,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 sys.path.insert(1, '../../group03/qlearning')
 from qlearner import QAgent
 
-# TODO This is your code!
 sys.path.insert(1, '../groupNN')
-#from testcharacter import TestCharacter
 
 # Create the game
 
@@ -24,7 +22,7 @@ with open('w3.csv') as csvfile:
 
 win =0
 for i in range(20):
-    random.seed(i)  # TODO Change this if you want different random choices
+    random.seed(i)  
     g = Game.fromfile('map.txt')
     g.add_monster(StupidMonster("stupid", # name
                                 "S",      # avatar
@@ -32,7 +30,7 @@ for i in range(20):
     ))
     g.add_monster(SelfPreservingMonster("aggressive", # name
                                         "A",          # avatar
-                                         3, 13,        # position
+                                         3, 13,       # position
                                         2             # detection range
     ))
 

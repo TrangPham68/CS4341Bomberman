@@ -41,7 +41,6 @@ for i in range(2): #5
                                         3, 9  # position
                                         ))
 
-            # TODO Add your character
             maboi = QAgent("me", "C", 0, 0, weights)
             t.add_character(maboi)
 
