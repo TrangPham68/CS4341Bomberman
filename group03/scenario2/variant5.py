@@ -20,7 +20,7 @@ sys.path.insert(1, '../groupNN')
 # Create the game
 
 
-with open('../qlearning/weights.csv') as csvfile:
+with open('tourWeight.csv') as csvfile:
     rd = csv.reader(csvfile)
     weights = {rows[0]: float(rows[1]) for rows in rd}
 

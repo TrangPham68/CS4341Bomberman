@@ -13,7 +13,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 sys.path.insert(0, '../../group03/qlearning')
 from qlearner import QAgent
 
-with open('../qlearning/weights2.csv') as csvfile:
+with open('tourWeight.csv') as csvfile:
     rd = csv.reader(csvfile)
     weights = {rows[0]:float(rows[1]) for rows in rd}
 
