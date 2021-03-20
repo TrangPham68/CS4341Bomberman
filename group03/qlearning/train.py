@@ -20,6 +20,7 @@ maps = ['training_maps/1.txt','training_maps/2.txt','training_maps/3.txt','train
 
 for m in range(5):
     for k in range(100):
+        random.seed(m*k)
         # Create the game
         g = Game.fromfile(maps[m])
         # g.add_monster(SelfPreservingMonster("aggressive", # name
@@ -28,10 +29,10 @@ for m in range(5):
         #                                     2             # detection range
         # ))
         #
-        # g.add_monster(StupidMonster("stupid", # name
-        #                             "S",      # avatar
-        #                             1, 6      # position
-        # ))
+        g.add_monster(StupidMonster("stupid", # name
+                                    "S",      # avatar
+                                    1, 6      # position
+        ))
 
         g.add_character(AStarCharacter("me",  # name
                                       "C",  # avatar

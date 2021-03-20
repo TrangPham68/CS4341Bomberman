@@ -7,15 +7,15 @@ sys.path.insert(1, '..')
 from game import Game
 
 # TODO This is your code!
-sys.path.insert(1, '../groupNN')
-from testcharacter import TestCharacter
+sys.path.insert(1, '../group03')
+from patient import AStarCharacter
 
 
 # Create the game
 g = Game.fromfile('map.txt')
 
 # TODO Add your character
-g.add_character(TestCharacter("me", # name
+g.add_character(AStarCharacter("me", # name
                               "C",  # avatar
                               0, 0  # position
 ))

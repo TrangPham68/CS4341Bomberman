@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f057a2c5-4735-4657-a42d-c1a5e502c9a3" name="Default Changelist" comment="Patient.py here you go">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/group03/patient.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/patient.py" afterDir="false" />
+    <list default="true" id="f057a2c5-4735-4657-a42d-c1a5e502c9a3" name="Default Changelist" comment="All clear for both variant1">
       <change beforePath="$PROJECT_DIR$/group03/qlearning/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/qlearning/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/group03/qlearning/training_maps/1.txt" beforeDir="false" afterPath="$PROJECT_DIR$/group03/qlearning/training_maps/1.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/group03/scenario2/variant2.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/scenario2/variant2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/group03/scenario2/variant1.py" beforeDir="false" afterPath="$PROJECT_DIR$/group03/scenario2/variant1.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -121,7 +118,7 @@
       <workItem from="1616042748605" duration="33370000" />
       <workItem from="1616189676118" duration="457000" />
       <workItem from="1616190151169" duration="16730000" />
-      <workItem from="1616207861589" duration="1914000" />
+      <workItem from="1616207861589" duration="2369000" />
     </task>
     <task id="LOCAL-00001" summary="I think something is off with the features">
       <created>1615958798901</created>
@@ -263,7 +260,14 @@
       <option name="project" value="LOCAL" />
       <updated>1616210826284</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="All clear for both variant1">
+      <created>1616211743033</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1616211743033</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -312,7 +316,8 @@
     <MESSAGE value="I should probably save" />
     <MESSAGE value="Bro this definity doesn't work but I don't want to do it anymore" />
     <MESSAGE value="Patient.py here you go" />
-    <option name="LAST_COMMIT_MESSAGE" value="Patient.py here you go" />
+    <MESSAGE value="All clear for both variant1" />
+    <option name="LAST_COMMIT_MESSAGE" value="All clear for both variant1" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/CS4341Bomberman$Python3.coverage" NAME="Python3 Coverage Results" MODIFIED="1616189567745" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/.." />
